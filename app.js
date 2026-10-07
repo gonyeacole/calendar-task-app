@@ -125,11 +125,10 @@ function bubbleHTML(kind) {
   }
   const week = weekDates(state.selected);
   const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
-  const total = (k) => days.reduce((n, d) => n + d.it[k].length, 0);
   const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length)
     .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it)}`).join("");
   const title = today >= week[0] && today <= week[6] ? "This Week" : "Week";
-  return `<h2 class="b-title">${title}</h2><div class="b-sub">${countText(total("events"), total("tasks"), total("payments")) || "Nothing scheduled"}</div><div class="b-list">${groups}</div>`;
+  return `<h2 class="b-title">${title}</h2>${groups ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${groups}</div>`;
 }
 
 const panelHTML = () => `<div class="bubbles"><section class="bubble" data-bubble="day">${bubbleHTML("day")}</section><section class="bubble" data-bubble="week">${bubbleHTML("week")}</section></div>`;
