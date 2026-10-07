@@ -90,35 +90,20 @@ function row(kind, item, { showDate = false } = {}) {
   if (kind === "task") {
     return `<button class="row ${item.done ? "done" : ""}" data-edit="task:${item.id}">
       <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
-      <span class="body"><div class="title">${esc(item.title)}</div>${taskMeta(item, showDate)}</span></button>`;
+      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div>${taskMeta(item, showDate)}</span></button>`;
   }
   if (kind === "payment") {
     return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"></span>
-      <span class="body"><div class="title">${esc(item.title)}</div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " : ""}${FREQS[item.freq]}</div></span>
+      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " : ""}${FREQS[item.freq]}</div></span>
       <span class="amount">${money(item.amount)}</span></button>`;
   }
   return `<button class="row" data-edit="event:${item.id}"><span class="marker"></span>
-    <span class="body"><div class="title">${esc(item.title)}</div><div class="meta">${showDate ? fmtLong(item.date) + (item.time ? " · " : "") : ""}${item.time ? fmtTime(item.time) : showDate ? "" : "All day"}</div></span></button>`;
+    <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? fmtLong(item.date) + (item.time ? " · " : "") : ""}${item.time ? fmtTime(item.time) : showDate ? "" : "All day"}</div></span></button>`;
 }
 
 // ---------- views ----------
-function renderCalendar() {
-  const y = state.view.getFullYear(), m = state.view.getMonth();
-  const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
-  const weeks = Math.ceil((first.getDay() + daysInMonth(y, m)) / 7);
+function panelHTML() {
   const today = todayIso();
-  let cells = "";
-  for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(start); d.setDate(start.getDate() + i);
-    const ds = iso(d), it = itemsOn(ds);
-    const dots = [
-      ...it.events.map(() => "event"),
-      ...it.tasks.filter((t) => !t.done).map(() => "task"),
-      ...it.payments.map(() => "payment"),
-    ].slice(0, 3).map((k) => `<i class="dot ${k}"></i>`).join("");
-    cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
-      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
-  }
   const it = itemsOn(state.selected);
   const counts = [
     it.events.length && `${it.events.length} Event${it.events.length > 1 ? "s" : ""}`,
@@ -131,11 +116,30 @@ function renderCalendar() {
     ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
     ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
   ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x)).join("");
+  return `<h2 class="section-title">${esc(label)}</h2><div class="section-sub">${counts}</div><div class="list">${rows}</div>`;
+}
+
+function renderCalendar() {
+  const y = state.view.getFullYear(), m = state.view.getMonth();
+  const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
+  const weeks = Math.ceil((first.getDay() + daysInMonth(y, m)) / 7);
+  const today = todayIso();
+  let cells = "";
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const ds = iso(d), it = itemsOn(ds);
+    const dots = [
+      ...it.events.map(() => "event"),
+      ...it.tasks.map(() => "task"),
+      ...it.payments.map(() => "payment"),
+    ].slice(0, 3).map((k) => `<i class="dot ${k}"></i>`).join("");
+    cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
+      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+  }
   return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
     <div class="grid" id="grid">${cells}</div>
-    <h2 class="section-title">${esc(label)}</h2><div class="section-sub">${counts}</div>
-    <div class="list">${rows}</div>`;
+    <div id="panel">${panelHTML()}</div>`;
 }
 
 function renderTodo() {
@@ -177,21 +181,76 @@ function renderEvents() {
 
 const VIEWS = { calendar: renderCalendar, todo: renderTodo, payments: renderPayments, events: renderEvents };
 
-function render() {
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EASE = "cubic-bezier(.22,.8,.24,1)";
+const animate = (el, keyframes, opts) => (reduceMotion || !el ? null : el.animate(keyframes, { easing: EASE, ...opts }));
+const rise = (el, delay = 0) => animate(el, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 360, delay, fill: "backwards" });
+
+function render({ enter = false } = {}) {
   const view = document.getElementById("view");
   const top = view.scrollTop;
   view.innerHTML = VIEWS[state.tab]();
   view.scrollTop = top;
-  document.getElementById("tabs").innerHTML = TABS.map(([k, label]) =>
-    `<button class="${state.tab === k ? "on" : ""}" data-tab="${k}">${I[k]}<span>${label}</span></button>`).join("");
+  const tabs = document.getElementById("tabs");
+  if (!tabs.children.length) {
+    tabs.innerHTML = TABS.map(([k, label]) => `<button data-tab="${k}">${I[k]}<span>${label}</span></button>`).join("");
+  }
+  tabs.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
+  if (enter) [...view.children].forEach((el, i) => rise(el, Math.min(i, 6) * 25));
+}
+
+// Swap the day panel below the grid without touching the rest of the page.
+function updatePanel() {
+  const panel = document.getElementById("panel");
+  if (!panel) return;
+  panel.innerHTML = panelHTML();
+  [...panel.children].forEach((el, i) => i < 2 ? rise(el, i * 20) : [...el.children].forEach((r, j) => rise(r, 50 + j * 45)));
+}
+
+let monthBusy = false;
+// Slide the current grid out, swap the month, slide the new grid in.
+async function changeMonth(dir, from = 0) {
+  if (monthBusy || state.tab !== "calendar") return;
+  monthBusy = true;
+  try {
+    const grid = document.getElementById("grid");
+    const out = animate(grid, [{ transform: `translateX(${from}px)`, opacity: 1 - Math.min(Math.abs(from) / 400, .4) }, { transform: `translateX(${-dir * 70}px)`, opacity: 0 }], { duration: 170, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+    if (out) await out.finished.catch(() => {});
+    state.view = new Date(state.view.getFullYear(), state.view.getMonth() + dir, 1);
+    render();
+    animate(document.getElementById("grid"), [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 340 });
+    const head = document.querySelector(".head > div");
+    animate(head, [{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 300 });
+  } finally { monthBusy = false; }
+}
+
+function selectDay(ds) {
+  const d = parse(ds), v = state.view;
+  state.selected = ds;
+  const delta = (d.getFullYear() - v.getFullYear()) * 12 + d.getMonth() - v.getMonth();
+  if (delta) return changeMonth(delta > 0 ? 1 : -1);   // tapped a greyed-out day: go to that month
+  document.querySelectorAll(".day.sel").forEach((c) => c.classList.remove("sel"));
+  document.querySelector(`[data-day="${ds}"]`)?.classList.add("sel");
+  updatePanel();
 }
 
 // ---------- sheets (add / edit / search) ----------
 const sheetRoot = document.getElementById("sheet-root");
-const closeSheet = () => { sheetRoot.innerHTML = ""; };
+const liveScrim = () => sheetRoot.querySelector(".scrim:not(.closing)");
+function closeSheet() {
+  const scrim = liveScrim();
+  if (!scrim) return;
+  scrim.classList.add("closing");
+  setTimeout(() => scrim.remove(), reduceMotion ? 0 : 280);
+}
 function openSheet(html, onMount) {
-  sheetRoot.innerHTML = `<div class="scrim" data-scrim><div class="sheet">${html}</div></div>`;
-  onMount?.(sheetRoot.querySelector(".sheet"));
+  let scrim = liveScrim();
+  if (scrim) scrim.firstElementChild.innerHTML = html;   // switching form type: swap content in place
+  else {
+    sheetRoot.innerHTML = `<div class="scrim" data-scrim><div class="sheet">${html}</div></div>`;
+    scrim = liveScrim();
+  }
+  onMount?.(scrim.firstElementChild);
 }
 
 function formFields(type, v) {
@@ -264,14 +323,18 @@ function openSearch() {
 }
 
 // ---------- events ----------
-const shiftMonth = (n) => { state.view = new Date(state.view.getFullYear(), state.view.getMonth() + n, 1); render(); };
 const addTypeForTab = { calendar: "event", events: "event", todo: "task", payments: "payment" };
 
+let reflow, justDragged = false;
 document.addEventListener("click", (e) => {
   const t = e.target;
   const q = (sel) => t.closest(sel);
-  if (q("[data-close]") || (t.matches("[data-scrim]"))) return closeSheet();
-  if (q("[data-tab]")) { state.tab = q("[data-tab]").dataset.tab; return render(); }
+  if (q("[data-close]") || t.matches("[data-scrim]")) return closeSheet();
+  if (q("[data-tab]")) {
+    const tab = q("[data-tab]").dataset.tab;
+    if (tab !== state.tab) { state.tab = tab; render({ enter: true }); }
+    return;
+  }
   if (q("[data-act]")) {
     const a = q("[data-act]").dataset.act;
     if (a === "search") return openSearch();
@@ -279,15 +342,17 @@ document.addEventListener("click", (e) => {
   }
   if (q("[data-toggle]")) {
     const task = state.data.tasks.find((x) => x.id === q("[data-toggle]").dataset.toggle);
-    if (task) { task.done = !task.done; save(); render(); }
+    if (task) {
+      task.done = !task.done; save();
+      // flip the checkmark and strike-through in place so they animate, then re-sort the To Do list
+      document.querySelectorAll(`[data-toggle="${task.id}"]`).forEach((m) => { m.classList.toggle("done", task.done); m.closest(".row").classList.toggle("done", task.done); });
+      if (state.tab === "todo") { clearTimeout(reflow); reflow = setTimeout(() => render(), 450); }
+    }
     return;
   }
   if (q("[data-day]")) {
-    const ds = q("[data-day]").dataset.day;
-    state.selected = ds;
-    const d = parse(ds);
-    if (d.getMonth() !== state.view.getMonth()) state.view = new Date(d.getFullYear(), d.getMonth(), 1);
-    return render();
+    if (justDragged) return;
+    return selectDay(q("[data-day]").dataset.day);
   }
   if (q("[data-edit]")) {
     const [type, id] = q("[data-edit]").dataset.edit.split(":");
@@ -296,18 +361,45 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// swipe (touch or mouse drag) on the grid, or use the arrow keys, to change month
-let sx = null;
-document.addEventListener("pointerdown", (e) => { sx = e.target.closest("#grid") ? e.clientX : null; });
-document.addEventListener("pointerup", (e) => {
-  if (sx == null) return;
-  const dx = e.clientX - sx; sx = null;
-  if (Math.abs(dx) > 50) shiftMonth(dx < 0 ? 1 : -1);
+// Drag the grid with a finger or mouse; release past a threshold (or with a flick) to change month.
+let drag = null;
+document.addEventListener("pointerdown", (e) => {
+  const grid = e.target.closest("#grid");
+  drag = grid && !monthBusy ? { x: e.clientX, y: e.clientY, t: performance.now(), dx: 0, active: false, grid } : null;
 });
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.active) {
+    if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
+    drag.active = true;
+    drag.grid.style.willChange = "transform, opacity";
+  }
+  drag.dx = dx;
+  drag.grid.style.transform = `translateX(${dx}px)`;
+  drag.grid.style.opacity = 1 - Math.min(Math.abs(dx) / 400, .4);
+});
+const endDrag = () => {
+  if (!drag) return;
+  const { active, dx, grid, t } = drag; drag = null;
+  if (!active) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 60);
+  const velocity = dx / Math.max(performance.now() - t, 1);          // px per ms
+  if (Math.abs(dx) > 70 || Math.abs(velocity) > .5) {
+    grid.style.transform = grid.style.opacity = grid.style.willChange = "";
+    changeMonth(dx < 0 ? 1 : -1, dx);
+  } else {
+    const back = animate(grid, [{ transform: `translateX(${dx}px)`, opacity: grid.style.opacity }, { transform: "none", opacity: 1 }], { duration: 280 });
+    grid.style.transform = grid.style.opacity = grid.style.willChange = "";
+    if (!back) return;
+  }
+};
+document.addEventListener("pointerup", endDrag);
+document.addEventListener("pointercancel", endDrag);
 document.addEventListener("keydown", (e) => {
-  if (state.tab !== "calendar" || sheetRoot.innerHTML || e.target.matches("input, textarea, select")) return;
-  if (e.key === "ArrowLeft") shiftMonth(-1);
-  if (e.key === "ArrowRight") shiftMonth(1);
+  if (state.tab !== "calendar" || liveScrim() || e.target.matches("input, textarea, select")) return;
+  if (e.key === "ArrowLeft") changeMonth(-1);
+  if (e.key === "ArrowRight") changeMonth(1);
 });
 
 render();
