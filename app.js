@@ -35,6 +35,21 @@ function paymentOn(p, ds) {
     default: return d.getDate() === Math.min(s.getDate(), daysInMonth(d.getFullYear(), d.getMonth()));
   }
 }
+const isLeap = (y) => y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
+function birthdayOn(b, ds) {
+  const md = b.date.slice(5), dmd = ds.slice(5);
+  return md === dmd || (md === "02-29" && dmd === "02-28" && !isLeap(+ds.slice(0, 4)));
+}
+function nextBirthday(b, from = todayIso()) {
+  const md = b.date.slice(5);
+  for (let y = +from.slice(0, 4); y < +from.slice(0, 4) + 9; y++) {
+    const c = `${y}-${md === "02-29" && !isLeap(y) ? "02-28" : md}`;
+    if (c >= from) return c;
+  }
+  return b.date;
+}
+const turnsOn = (b, ds) => (b.noYear ? "" : `Turns ${+ds.slice(0, 4) - +b.date.slice(0, 4)}`);
+const countdown = (ds) => { const n = daysBetween(todayIso(), ds); return n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`; };
 const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
 function nextDue(p, from = todayIso()) {
   const d = parse(from < p.start ? p.start : from);
@@ -51,8 +66,8 @@ const state = {
   data: load(),
 };
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return d; } catch {}
-  return { events: [], tasks: [], payments: [] };
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return { birthdays: [], ...d }; } catch {}
+  return { events: [], tasks: [], payments: [], birthdays: [] };
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state.data)); } catch {} }
 
@@ -60,6 +75,7 @@ const itemsOn = (ds) => ({
   events: state.data.events.filter((e) => e.date <= ds && ds <= (e.endDate || e.date)).sort((a, b) => (a.date === ds ? a.time || "" : "").localeCompare(b.date === ds ? b.time || "" : "")),
   tasks: state.data.tasks.filter((t) => t.due === ds),
   payments: state.data.payments.filter((p) => paymentOn(p, ds)),
+  birthdays: state.data.birthdays.filter((b) => birthdayOn(b, ds)),
 });
 
 // ---------- icons ----------
@@ -69,10 +85,11 @@ const I = {
   calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   todo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/></svg>',
   payments: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V9.5A3.5 3.5 0 0 1 7.5 6H19M16 3l3 3-3 3"/><path d="M20 13v1.5a3.5 3.5 0 0 1-3.5 3.5H5M8 21l-3-3 3-3"/></svg>',
+  birthdays: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9" width="17" height="4" rx="1.2"/><path d="M5 13v6.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V13M12 9v12"/><path d="M12 9c-1.2-3.2-4.800-3.600-4.800-1.400C7.200 9.200 10 9 12 9zM12 9c1.200-3.200 4.800-3.600 4.800-1.400C16.800 9.200 14 9 12 9z"/></svg>',
   events: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></svg>',
 };
 const TABS = [
-  ["calendar", "Calendar"], ["todo", "To Do"], ["payments", "Payments"], ["events", "Events"],
+  ["calendar", "Calendar"], ["todo", "To Do"], ["payments", "Payments"], ["events", "Events"], ["birthdays", "Birthdays"],
 ];
 
 // ---------- shared pieces ----------
@@ -114,6 +131,13 @@ function row(kind, item, { showDate = false, ds = "" } = {}) {
       <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
       <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div>${taskMeta(item, showDate)}</span></button>`;
   }
+  if (kind === "birthday") {
+    const turns = turnsOn(item, ds || nextBirthday(item));
+    const meta = showDate ? [parse(ds).toLocaleDateString(undefined, { month: "short", day: "numeric" }), turns].filter(Boolean).join(" · ") : ["Birthday", turns].filter(Boolean).join(" · ");
+    return `<button class="row" data-edit="birthday:${item.id}"><span class="marker birthday"></span>
+      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${meta}</div></span>
+      ${showDate ? `<span class="amount">${countdown(ds)}</span>` : ""}</button>`;
+  }
   if (kind === "payment") {
     return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"></span>
       <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " + FREQS[item.freq] : money(item.amount) + " · " + FREQS[item.freq]}</div></span>
@@ -132,6 +156,7 @@ const sortedRows = (it, ds) => [
   ...it.events.map((x) => ({ kind: "event", x, at: x.date === ds ? x.time : "" })),
   ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
   ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
+  ...it.birthdays.map((x) => ({ kind: "birthday", x, at: "" })),
 ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x, { ds })).join("");
 
 // Two bubbles side by side, both always visible: the selected day, and its week.
@@ -145,7 +170,7 @@ function bubbleHTML(kind) {
   }
   const week = weekDates(state.selected);
   const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
-  const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length)
+  const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length)
     .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
   const title = today >= week[0] && today <= week[6] ? "This Week" : "Week";
   return `<h2 class="b-title">${title}</h2>${groups ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${groups}</div>`;
@@ -166,6 +191,7 @@ function renderCalendar() {
       ...it.events.map(() => "event"),
       ...it.tasks.map(() => "task"),
       ...it.payments.map(() => "payment"),
+      ...it.birthdays.map(() => "birthday"),
     ].slice(0, 3).map((k) => `<i class="dot ${k}"></i>`).join("");
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
       <span class="num">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
@@ -213,7 +239,15 @@ function renderEvents() {
     ${group(upcoming)}${past.length ? `<div class="group-label" style="margin-top:34px">Past</div>${group(past)}` : ""}`;
 }
 
-const VIEWS = { calendar: renderCalendar, todo: renderTodo, payments: renderPayments, events: renderEvents };
+function renderBirthdays() {
+  const list = state.data.birthdays.map((b) => ({ b, next: nextBirthday(b) })).sort((a, c) => a.next.localeCompare(c.next));
+  const sub = list.length ? `Next: ${list[0].b.title} · ${countdown(list[0].next)}` : "None yet";
+  return `${header("Birthdays", sub)}
+    ${list.length ? "" : `<div class="empty">No birthdays yet. Tap + to add one.</div>`}
+    <div class="list">${list.map(({ b, next }) => row("birthday", b, { showDate: true, ds: next })).join("")}</div>`;
+}
+
+const VIEWS = { birthdays: renderBirthdays, calendar: renderCalendar, todo: renderTodo, payments: renderPayments, events: renderEvents };
 
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const EASE = "cubic-bezier(.22,.8,.24,1)";
@@ -313,6 +347,8 @@ function formFields(type, v) {
     <div class="dur" aria-live="polite"></div></div>`
     + f("Location", `<input name="location" autocomplete="off" value="${esc(v.location)}">`) + notes;
   if (type === "task") return title("Task") + `<div class="fcard">${frow("Due", pillDate("due", v.due) + pillTime("time", v.time))}</div>` + notes;
+  if (type === "birthday") return title("Name") + `<div class="fcard">${frow("Date", pillDate("date", v.date, "required"))}
+    <label class="frow toggle-row"><span>Year unknown</span><span class="switch"><input type="checkbox" name="noYear" ${v.noYear ? "checked" : ""}><i></i></span></label></div>` + notes;
   return title("Payment name") + `<div class="field-row">${f("Amount", `<input type="number" name="amount" step="0.01" min="0" required inputmode="decimal" value="${v.amount ?? ""}">`)}
     ${f("Repeats", `<select name="freq">${Object.entries(FREQS).map(([k, l]) => `<option value="${k}" ${v.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select>`)}</div>`
     + `<div class="fcard">${frow("First payment", pillDate("start", v.start, "required"))}</div>` + notes;
@@ -359,14 +395,15 @@ function openForm(type, item) {
     event: { title: "", date: soon.date, time: soon.time, endDate: soonEnd.date, endTime: soonEnd.time, allDay: false },
     task: { title: "", due: state.tab === "calendar" ? state.selected : "", done: false },
     payment: { title: "", amount: "", freq: "monthly", start: state.selected },
+    birthday: { title: "", date: state.selected, noYear: false },
   };
-  const names = { event: "Event", task: "Task", payment: "Payment" };
+  const names = { event: "Event", task: "Task", payment: "Payment", birthday: "Birthday" };
   const asForm = (e) => {                                // saved event -> form values (no end saved yet = one hour; no time = all-day)
     const end = e.time ? plusHour(e.date, e.time) : { date: e.date, time: "" };
     return { ...e, allDay: !e.time, endDate: e.endDate || end.date, endTime: e.endTime || end.time };
   };
   const draft = item ? (type === "event" ? asForm(item) : { ...item }) : defaults[type];
-  const collection = { event: "events", task: "tasks", payment: "payments" };
+  const collection = { event: "events", task: "tasks", payment: "payments", birthday: "birthdays" };
 
   const draw = (t) => {
     openSheet(`<div class="sheet-head"><button class="link muted" data-close>Cancel</button><h2>${editing ? "Edit" : "New"} ${names[t]}</h2><button class="link" form="f" type="submit">Save</button></div>
@@ -386,6 +423,7 @@ function openForm(type, item) {
         const fd = Object.fromEntries(new FormData(e.target));
         const next = { ...(item || { id: uid() }), ...fd };
         if (t === "payment") next.amount = parseFloat(fd.amount);
+        if (t === "birthday") next.noYear = fd.noYear === "on";
         if (t === "event") {
           delete next.allDay;
           next.endDate = fd.endDate || fd.date;
@@ -397,7 +435,7 @@ function openForm(type, item) {
         const i = list.findIndex((x) => x.id === next.id);
         i >= 0 ? (list[i] = next) : list.push(next);
         save(); closeSheet();
-        const date = next.date || next.due || next.start;
+        const date = t === "birthday" ? nextBirthday(next) : next.date || next.due || next.start;
         if (!editing && state.tab === "calendar" && date) { state.selected = date; state.view = new Date(parse(date).getFullYear(), parse(date).getMonth(), 1); }
         render();
       });
@@ -411,12 +449,12 @@ function openSearch() {
     q = q.trim().toLowerCase();
     if (!q) return "";
     const hit = (x) => x.title.toLowerCase().includes(q);
-    const { events, tasks, payments } = state.data;
-    const html = [...events.filter(hit).map((e) => row("event", e, { showDate: true })), ...tasks.filter(hit).map((t) => row("task", t, { showDate: true })), ...payments.filter(hit).map((p) => row("payment", p, { showDate: true }))].join("");
+    const { events, tasks, payments, birthdays } = state.data;
+    const html = [...events.filter(hit).map((e) => row("event", e, { showDate: true })), ...tasks.filter(hit).map((t) => row("task", t, { showDate: true })), ...payments.filter(hit).map((p) => row("payment", p, { showDate: true })), ...birthdays.filter(hit).map((b) => row("birthday", b, { showDate: true, ds: nextBirthday(b) }))].join("");
     return html || `<div class="empty">No results</div>`;
   };
   openSheet(`<div class="sheet-head"><h2>Search</h2><button class="link" data-close>Done</button></div>
-    <input class="search-input" placeholder="Search events, tasks, payments" autocomplete="off"><div class="list" id="results"></div>`, (sheet) => {
+    <input class="search-input" placeholder="Search events, tasks, payments, birthdays" autocomplete="off"><div class="list" id="results"></div>`, (sheet) => {
     const input = sheet.querySelector("input"), out = sheet.querySelector("#results");
     input.focus();
     input.addEventListener("input", () => { out.innerHTML = result(input.value); });
@@ -424,7 +462,7 @@ function openSearch() {
 }
 
 // ---------- events ----------
-const addTypeForTab = { calendar: "event", events: "event", todo: "task", payments: "payment" };
+const addTypeForTab = { calendar: "event", events: "event", todo: "task", payments: "payment", birthdays: "birthday" };
 
 let reflow, justDragged = false;
 document.addEventListener("click", (e) => {
@@ -457,7 +495,7 @@ document.addEventListener("click", (e) => {
   }
   if (q("[data-edit]")) {
     const [type, id] = q("[data-edit]").dataset.edit.split(":");
-    const item = state.data[{ event: "events", task: "tasks", payment: "payments" }[type]].find((x) => x.id === id);
+    const item = state.data[{ event: "events", task: "tasks", payment: "payments", birthday: "birthdays" }[type]].find((x) => x.id === id);
     if (item) openForm(type, item);
   }
 });
