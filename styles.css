@@ -165,25 +165,25 @@ svg { display: block; }
 
 /* event / task / payment form: rows with separate date and time bubbles */
 .fcard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.frow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 16px; }
-.frow.bubble { background: var(--bg); border-radius: 10px; padding: 0 12px; }
+.frow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; font-size: 16px; }
+.toggle-row { justify-content: flex-start; gap: 12px; min-height: 30px; cursor: pointer; }
 .frow > span { flex: none; }
 .pills-in { display: flex; gap: 8px; min-width: 0; justify-content: flex-end; }
 .pill-in {
   position: relative; -webkit-appearance: none; appearance: none; border: 0; border-radius: 10px;
-  background: var(--bg); color: var(--text); font: inherit; font-size: 16px; height: 44px; padding: 0 12px;
+  background: var(--bg); color: var(--text); font: inherit; font-size: 15px; height: 36px; padding: 0 10px;
   min-width: 0; text-align: center; color-scheme: light dark;
   transition: width .3s var(--ease), padding .3s var(--ease), margin .3s var(--ease), opacity .2s ease, background-color .2s ease;
 }
-.pill-in.date { width: 138px; flex: 0 1 138px; }
-.pill-in.time { width: 100px; flex: 0 0 100px; }
+.pill-in.date { width: 120px; flex: 0 1 120px; }
+.pill-in.time { width: 92px; flex: 0 0 92px; }
 .pill-in::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .pill-in::-webkit-date-and-time-value { text-align: center; }
 .pill-in:focus-visible { outline: 2px solid var(--event); outline-offset: 1px; }
 .fcard.allday .pill-in.time { width: 0; flex-basis: 0; padding: 0; margin-left: -8px; opacity: 0; pointer-events: none; }
-.switch { position: relative; width: 51px; height: 31px; flex: none; }
+.switch { position: relative; display: block; width: 40px; height: 24px; flex: none; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
 .switch i { position: absolute; inset: 0; border-radius: 999px; background: var(--faint); transition: background-color .25s var(--ease); }
-.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, .3); transition: transform .3s var(--ease); }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .3s var(--ease); }
 .switch input:checked + i { background: var(--event); }
-.switch input:checked + i::after { transform: translateX(20px); }
+.switch input:checked + i::after { transform: translateX(16px); }
