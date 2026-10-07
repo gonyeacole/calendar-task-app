@@ -326,12 +326,6 @@ function openSheet(html, onMount, { tall = false } = {}) {
   onMount?.(scrim.firstElementChild);
 }
 
-function fmtSpan(ms, allDay) {
-  if (allDay) { const d = Math.round(ms / 864e5) + 1; return `${d} day${d > 1 ? "s" : ""}`; }
-  const m = Math.round(ms / 6e4), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
-  return [d && `${d} day${d > 1 ? "s" : ""}`, h && `${h} hr`, mi && `${mi} min`].filter(Boolean).join(" ") || "0 min";
-}
-
 const pillDate = (name, val, extra = "") => `<input class="pill-in date" type="date" name="${name}" value="${val || ""}" ${extra}>`;
 const pillTime = (name, val) => `<input class="pill-in time" type="time" name="${name}" value="${val || ""}">`;
 const frow = (label, inner) => `<div class="frow"><span>${label}</span><div class="pills-in">${inner}</div></div>`;
@@ -342,9 +336,10 @@ function formFields(type, v) {
   const notes = f("Notes", `<textarea name="notes" rows="4">${esc(v.notes)}</textarea>`);
   if (type === "event") return title("Event name") + `<div class="fcard ${v.allDay ? "allday" : ""}">
     <label class="frow toggle-row"><span>All-day</span><span class="switch"><input type="checkbox" name="allDay" ${v.allDay ? "checked" : ""}><i></i></span></label>
-    ${frow("Starts", pillDate("date", v.date, "required") + pillTime("time", v.time))}
-    ${frow("Ends", pillDate("endDate", v.endDate) + pillTime("endTime", v.endTime))}
-    <div class="dur" aria-live="polite"></div></div>`
+    <div class="range">
+      <div class="rcol"><span class="rlabel">Starts</span>${pillDate("date", v.date, "required")}${pillTime("time", v.time)}</div>
+      <div class="rcol"><span class="rlabel">Ends</span>${pillDate("endDate", v.endDate)}${pillTime("endTime", v.endTime)}</div>
+    </div></div>`
     + f("Location", `<input name="location" autocomplete="off" value="${esc(v.location)}">`) + notes;
   if (type === "task") return title("Task") + `<div class="fcard">${frow("Due", pillDate("due", v.due) + pillTime("time", v.time))}</div>` + notes;
   if (type === "birthday") return title("Name") + `<div class="fcard">${frow("Date", pillDate("date", v.date, "required"))}
@@ -360,27 +355,23 @@ function wireEventForm(form) {
   const allDay = () => el("allDay").checked;
   const at = (d, t) => dtOf(el(d).value, allDay() ? "" : el(t).value);
   const span = () => at("endDate", "endTime") - at("date", "time");
-  const durEl = form.querySelector(".dur");
-  const showDur = () => { durEl.textContent = fmtSpan(Math.max(span(), 0), allDay()); };
   let dur = span(); if (!(dur >= 0)) dur = 36e5;
-  showDur();
   const setEnd = (ms) => {
     const x = new Date(at("date", "time").getTime() + ms);
     el("endDate").value = iso(x); if (!allDay()) el("endTime").value = hm(x);
   };
-  ["date", "time"].forEach((n) => el(n).addEventListener("change", () => { if (el("date").value) setEnd(dur); showDur(); }));
+  ["date", "time"].forEach((n) => el(n).addEventListener("change", () => { if (el("date").value) setEnd(dur); }));
   ["endDate", "endTime"].forEach((n) => el(n).addEventListener("change", () => {
     if (!el("endDate").value) return setEnd(dur);
     if (span() < 0) setEnd(0);
-    dur = span(); showDur();
+    dur = span();
   }));
   el("allDay").addEventListener("change", () => {
     card.classList.toggle("allday", allDay());
-    if (allDay()) { dur = Math.max(span(), 0); return showDur(); }
+    if (allDay()) { dur = Math.max(span(), 0); return; }
     if (!el("time").value) el("time").value = "09:00";
     if (!el("endTime").value) el("endTime").value = "10:00";
     dur = span(); if (!(dur >= 0)) { dur = 36e5; setEnd(dur); }
-    showDur();
   });
 }
 
