@@ -64,8 +64,7 @@ svg { display: block; }
 .day.today .num { color: var(--event); }
 .day .num { position: relative; isolation: isolate; width: 41px; height: 41px; border-radius: 50%; display: grid; place-items: center; transition: color .25s var(--ease); }
 .day .num::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; background: var(--text);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text);
+  content: ""; position: absolute; inset: -1.5px; z-index: -1; border-radius: 50%; background: var(--text);
   opacity: 0; transform: scale(.55);
   transition: transform .34s var(--ease), opacity .2s ease;
 }
@@ -125,7 +124,7 @@ svg { display: block; }
 }
 #tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 500; color: var(--muted); }
 #tabs button { transition: color .25s var(--ease); }
-#tabs button.on { color: var(--event); }
+#tabs button.on { color: var(--text); }
 #tabs svg { transition: transform .35s var(--ease); }
 #tabs button.on svg { transform: scale(1.08); }
 #tabs button:active svg { transform: scale(.88); }
