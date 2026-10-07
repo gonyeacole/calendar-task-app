@@ -136,6 +136,7 @@ svg { display: block; }
 .sheet { width: 100%; max-width: 430px; background: var(--surface); border-radius: 20px 20px 0 0; padding: 18px 20px calc(env(safe-area-inset-bottom) + 20px); max-height: 92%; overflow-y: auto; animation: up .42s cubic-bezier(.32, .72, 0, 1) both; }
 .scrim.closing { animation: fade-out .28s ease both; pointer-events: none; }
 .scrim.closing .sheet { animation: down .28s cubic-bezier(.4, 0, 1, 1) both; }
+.sheet.tall { height: calc(100% - var(--sheet-top, 80px)); max-height: none; }
 @keyframes up { from { transform: translateY(100%); } }
 @keyframes down { to { transform: translateY(100%); } }
 @keyframes fade { from { opacity: 0; } }

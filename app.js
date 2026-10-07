@@ -274,11 +274,14 @@ function closeSheet() {
   scrim.classList.add("closing");
   setTimeout(() => scrim.remove(), reduceMotion ? 0 : 280);
 }
-function openSheet(html, onMount) {
+function openSheet(html, onMount, { tall = false } = {}) {
   let scrim = liveScrim();
   if (scrim) scrim.firstElementChild.innerHTML = html;   // switching form type: swap content in place
   else {
-    sheetRoot.innerHTML = `<div class="scrim" data-scrim><div class="sheet">${html}</div></div>`;
+    // a tall sheet opens up to just below the year in the page header
+    const year = document.querySelector(".head .sub");
+    const top = tall && year ? Math.max(year.getBoundingClientRect().bottom, 60) + 12 : 0;
+    sheetRoot.innerHTML = `<div class="scrim" data-scrim><div class="sheet ${tall ? "tall" : ""}" style="--sheet-top:${top}px">${html}</div></div>`;
     scrim = liveScrim();
   }
   onMount?.(scrim.firstElementChild);
@@ -352,7 +355,7 @@ function openForm(type, item) {
       ${editing ? "" : `<div class="seg">${Object.entries(names).map(([k, l]) => `<button type="button" data-type="${k}" class="${k === t ? "on" : ""}">${l}</button>`).join("")}</div>`}
       <form id="f">${formFields(t, { ...defaults[t], ...draft })}</form>
       ${editing ? `<button class="danger" data-delete>Delete ${names[t]}</button>` : ""}`, (sheet) => {
-      sheet.querySelector("input[name=title]").focus();
+      sheet.querySelector("input[name=title]").focus({ preventScroll: true });
       if (t === "event") wireEventForm(sheet.querySelector("#f"));
       sheet.querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => {
         draft.title = sheet.querySelector("input[name=title]").value; draw(b.dataset.type); type = b.dataset.type;
@@ -380,7 +383,7 @@ function openForm(type, item) {
         if (!editing && state.tab === "calendar" && date) { state.selected = date; state.view = new Date(parse(date).getFullYear(), parse(date).getMonth(), 1); }
         render();
       });
-    });
+    }, { tall: true });
   };
   draw(type);
 }
