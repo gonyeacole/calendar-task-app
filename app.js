@@ -10,6 +10,9 @@ const pad = (n) => String(n).padStart(2, "0");
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const todayIso = () => iso(new Date());
+const dtOf = (d, t) => new Date(`${d}T${t || "00:00"}:00`);
+const hm = (x) => `${pad(x.getHours())}:${pad(x.getMinutes())}`;
+const plusHour = (d, t) => { const x = dtOf(d, t); x.setHours(x.getHours() + 1); return { date: iso(x), time: hm(x) }; };
 const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 864e5);
 const fmtLong = (s) => parse(s).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 const fmtTime = (t) => {
@@ -54,7 +57,7 @@ function load() {
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state.data)); } catch {} }
 
 const itemsOn = (ds) => ({
-  events: state.data.events.filter((e) => e.date === ds).sort((a, b) => (a.time || "").localeCompare(b.time || "")),
+  events: state.data.events.filter((e) => e.date <= ds && ds <= (e.endDate || e.date)).sort((a, b) => (a.date === ds ? a.time || "" : "").localeCompare(b.date === ds ? b.time || "" : "")),
   tasks: state.data.tasks.filter((t) => t.due === ds),
   payments: state.data.payments.filter((p) => paymentOn(p, ds)),
 });
@@ -86,7 +89,21 @@ function taskMeta(t, showDate) {
   return bits ? `<div class="meta">${bits}</div>` : "";
 }
 
-function row(kind, item, { showDate = false } = {}) {
+function eventMeta(e, ds, showDate) {
+  const end = e.endDate || e.date, multi = end !== e.date;
+  const range = e.time && e.endTime && e.endTime !== e.time ? `${fmtTime(e.time)} – ${fmtTime(e.endTime)}` : fmtTime(e.time);
+  if (showDate) {
+    const days = fmtLong(e.date) + (multi ? " – " + fmtLong(end) : "");
+    return days + (e.time ? " · " + range : " · All day");
+  }
+  if (!e.time) return "All day";
+  if (!multi) return range;
+  if (ds === e.date) return `${fmtTime(e.time)} →`;
+  if (ds === end) return `→ ${fmtTime(e.endTime || e.time)}`;
+  return "All day";
+}
+
+function row(kind, item, { showDate = false, ds = "" } = {}) {
   if (kind === "task") {
     return `<button class="row ${item.done ? "done" : ""}" data-edit="task:${item.id}">
       <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
@@ -98,7 +115,7 @@ function row(kind, item, { showDate = false } = {}) {
       ${showDate ? `<span class="amount">${money(item.amount)}</span>` : ""}</button>`;
   }
   return `<button class="row" data-edit="event:${item.id}"><span class="marker"></span>
-    <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? fmtLong(item.date) + (item.time ? " · " : "") : ""}${item.time ? fmtTime(item.time) : showDate ? "" : "All day"}</div></span></button>`;
+    <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${eventMeta(item, ds, showDate)}</div></span></button>`;
 }
 
 // ---------- views ----------
@@ -106,11 +123,11 @@ const weekDates = (ds) => {
   const d = parse(ds); d.setDate(d.getDate() - d.getDay());
   return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return iso(x); });
 };
-const sortedRows = (it) => [
-  ...it.events.map((x) => ({ kind: "event", x, at: x.time })),
+const sortedRows = (it, ds) => [
+  ...it.events.map((x) => ({ kind: "event", x, at: x.date === ds ? x.time : "" })),
   ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
   ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
-].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x)).join("");
+].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x, { ds })).join("");
 
 // Two bubbles side by side, both always visible: the selected day, and its week.
 function bubbleHTML(kind) {
@@ -118,13 +135,13 @@ function bubbleHTML(kind) {
   if (kind === "day") {
     const it = itemsOn(state.selected);
     const title = state.selected === today ? "Today" : fmtLong(state.selected);
-    const rows = sortedRows(it);
+    const rows = sortedRows(it, state.selected);
     return `<h2 class="b-title">${esc(title)}</h2>${rows ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${rows}</div>`;
   }
   const week = weekDates(state.selected);
   const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
   const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length)
-    .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it)}`).join("");
+    .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
   const title = today >= week[0] && today <= week[6] ? "This Week" : "Week";
   return `<h2 class="b-title">${title}</h2>${groups ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${groups}</div>`;
 }
@@ -267,25 +284,67 @@ function openSheet(html, onMount) {
   onMount?.(scrim.firstElementChild);
 }
 
+const pillDate = (name, val, extra = "") => `<input class="pill-in date" type="date" name="${name}" value="${val || ""}" ${extra}>`;
+const pillTime = (name, val) => `<input class="pill-in time" type="time" name="${name}" value="${val || ""}">`;
+const frow = (label, inner) => `<div class="frow"><span>${label}</span><div class="pills-in">${inner}</div></div>`;
+
 function formFields(type, v) {
   const f = (label, input) => `<label class="field">${label}${input}</label>`;
   const title = f("Title", `<input name="title" required autocomplete="off" value="${esc(v.title)}">`);
-  if (type === "event") return title + `<div class="field-row">${f("Date", `<input type="date" name="date" required value="${v.date}">`)}${f("Time", `<input type="time" name="time" value="${v.time || ""}">`)}</div>`;
-  if (type === "task") return title + `<div class="field-row">${f("Due date (optional)", `<input type="date" name="due" value="${v.due || ""}">`)}${f("Time", `<input type="time" name="time" value="${v.time || ""}">`)}</div>`;
+  if (type === "event") return title + `<div class="fcard ${v.allDay ? "allday" : ""}">
+    <div class="frow"><span>All-day</span><label class="switch"><input type="checkbox" name="allDay" ${v.allDay ? "checked" : ""}><i></i></label></div>
+    ${frow("Starts", pillDate("date", v.date, "required") + pillTime("time", v.time))}
+    ${frow("Ends", pillDate("endDate", v.endDate) + pillTime("endTime", v.endTime))}</div>`;
+  if (type === "task") return title + `<div class="fcard">${frow("Due", pillDate("due", v.due) + pillTime("time", v.time))}</div>`;
   return title + `<div class="field-row">${f("Amount", `<input type="number" name="amount" step="0.01" min="0" required inputmode="decimal" value="${v.amount ?? ""}">`)}
     ${f("Repeats", `<select name="freq">${Object.entries(FREQS).map(([k, l]) => `<option value="${k}" ${v.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select>`)}</div>`
-    + f("First payment date", `<input type="date" name="start" required value="${v.start}">`);
+    + `<div class="fcard">${frow("First payment", pillDate("start", v.start, "required"))}</div>`;
+}
+
+// Keeps Starts / Ends consistent: moving the start moves the end by the same amount, and the end can't land before the start.
+function wireEventForm(form) {
+  const el = (n) => form.elements[n], card = form.querySelector(".fcard");
+  const allDay = () => el("allDay").checked;
+  const at = (d, t) => dtOf(el(d).value, allDay() ? "" : el(t).value);
+  const span = () => at("endDate", "endTime") - at("date", "time");
+  let dur = span(); if (!(dur >= 0)) dur = 36e5;
+  const setEnd = (ms) => {
+    const x = new Date(at("date", "time").getTime() + ms);
+    el("endDate").value = iso(x); if (!allDay()) el("endTime").value = hm(x);
+  };
+  ["date", "time"].forEach((n) => el(n).addEventListener("change", () => { if (el("date").value) setEnd(dur); }));
+  ["endDate", "endTime"].forEach((n) => el(n).addEventListener("change", () => {
+    if (!el("endDate").value) return setEnd(dur);
+    if (span() < 0) setEnd(0);
+    dur = span();
+  }));
+  el("allDay").addEventListener("change", () => {
+    card.classList.toggle("allday", allDay());
+    if (allDay()) { dur = Math.max(span(), 0); return; }
+    if (!el("time").value) el("time").value = "09:00";
+    if (!el("endTime").value) el("endTime").value = "10:00";
+    dur = span(); if (!(dur >= 0)) { dur = 36e5; setEnd(dur); }
+  });
 }
 
 function openForm(type, item) {
   const editing = !!item;
+  const soon = (() => {                                  // next full hour today, otherwise 9:00 on the selected day
+    if (state.selected !== todayIso()) return { date: state.selected, time: "09:00" };
+    const x = new Date(); x.setMinutes(0, 0, 0); x.setHours(x.getHours() + 1); return { date: iso(x), time: hm(x) };
+  })();
+  const soonEnd = plusHour(soon.date, soon.time);
   const defaults = {
-    event: { title: "", date: state.selected, time: "" },
+    event: { title: "", date: soon.date, time: soon.time, endDate: soonEnd.date, endTime: soonEnd.time, allDay: false },
     task: { title: "", due: state.tab === "calendar" ? state.selected : "", done: false },
     payment: { title: "", amount: "", freq: "monthly", start: state.selected },
   };
   const names = { event: "Event", task: "Task", payment: "Payment" };
-  const draft = item ? { ...item } : defaults[type];
+  const asForm = (e) => {                                // saved event -> form values (no end saved yet = one hour; no time = all-day)
+    const end = e.time ? plusHour(e.date, e.time) : { date: e.date, time: "" };
+    return { ...e, allDay: !e.time, endDate: e.endDate || end.date, endTime: e.endTime || end.time };
+  };
+  const draft = item ? (type === "event" ? asForm(item) : { ...item }) : defaults[type];
   const collection = { event: "events", task: "tasks", payment: "payments" };
 
   const draw = (t) => {
@@ -294,6 +353,7 @@ function openForm(type, item) {
       <form id="f">${formFields(t, { ...defaults[t], ...draft })}</form>
       ${editing ? `<button class="danger" data-delete>Delete ${names[t]}</button>` : ""}`, (sheet) => {
       sheet.querySelector("input[name=title]").focus();
+      if (t === "event") wireEventForm(sheet.querySelector("#f"));
       sheet.querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => {
         draft.title = sheet.querySelector("input[name=title]").value; draw(b.dataset.type); type = b.dataset.type;
       }));
@@ -305,6 +365,12 @@ function openForm(type, item) {
         const fd = Object.fromEntries(new FormData(e.target));
         const next = { ...(item || { id: uid() }), ...fd };
         if (t === "payment") next.amount = parseFloat(fd.amount);
+        if (t === "event") {
+          delete next.allDay;
+          next.endDate = fd.endDate || fd.date;
+          if (fd.allDay) { next.time = ""; next.endTime = ""; }
+          else { next.time = fd.time || "09:00"; next.endTime = fd.endTime || next.time; }
+        }
         if (t === "task") { next.due = fd.due || ""; next.time = fd.time || ""; next.done = item?.done ?? false; }
         const list = state.data[collection[t]];
         const i = list.findIndex((x) => x.id === next.id);
