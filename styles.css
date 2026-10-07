@@ -12,13 +12,13 @@
 :root { color-scheme: light dark; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #000000; --surface: #161411; --text: #f1e6d1; --muted: #968c7b;
-    --faint: #47423a; --line: rgba(241, 230, 209, .15); --event: #d94a2e; --dow: #c3b8a3;
+    --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
+    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --dow: #b4b9be;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #000000; --surface: #161411; --text: #f1e6d1; --muted: #968c7b;
-  --faint: #47423a; --line: rgba(241, 230, 209, .15); --event: #d94a2e; --dow: #c3b8a3;
+  --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
+  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --dow: #b4b9be;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
