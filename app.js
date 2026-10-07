@@ -45,7 +45,6 @@ const state = {
   tab: "calendar",
   view: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   selected: todayIso(),
-  range: "day",   // calendar day panel: "day" or "week"
   data: load(),
 };
 function load() {
@@ -95,8 +94,8 @@ function row(kind, item, { showDate = false } = {}) {
   }
   if (kind === "payment") {
     return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"></span>
-      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " : ""}${FREQS[item.freq]}</div></span>
-      <span class="amount">${money(item.amount)}</span></button>`;
+      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " + FREQS[item.freq] : money(item.amount) + " · " + FREQS[item.freq]}</div></span>
+      ${showDate ? `<span class="amount">${money(item.amount)}</span>` : ""}</button>`;
   }
   return `<button class="row" data-edit="event:${item.id}"><span class="marker"></span>
     <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? fmtLong(item.date) + (item.time ? " · " : "") : ""}${item.time ? fmtTime(item.time) : showDate ? "" : "All day"}</div></span></button>`;
@@ -116,28 +115,24 @@ const countText = (e, t, p) => [
   e && `${e} Event${e > 1 ? "s" : ""}`, t && `${t} Task${t > 1 ? "s" : ""}`, p && `${p} Payment${p > 1 ? "s" : ""}`,
 ].filter(Boolean).join(", ");
 
-// The two bubbles beside the heading: the selected day, and its week.
-function pillsHTML() {
-  const today = todayIso(), week = weekDates(state.selected);
-  const thisWeek = today >= week[0] && today <= week[6];
-  const labels = { day: state.selected === today ? "Today" : fmtLong(state.selected), week: thisWeek ? "This Week" : "Week" };
-  return ["day", "week"].map((k) => `<button class="pill ${state.range === k ? "on" : ""}" data-range="${k}">${esc(labels[k])}</button>`).join("");
-}
-
-function bodyHTML() {
-  if (state.range === "day") {
-    const it = itemsOn(state.selected);
-    return `<div class="section-sub">${countText(it.events.length, it.tasks.length, it.payments.length) || "Nothing scheduled"}</div><div class="list">${sortedRows(it)}</div>`;
-  }
+// Two bubbles side by side, both always visible: the selected day, and its week.
+function bubbleHTML(kind) {
   const today = todayIso();
-  const days = weekDates(state.selected).map((ds) => ({ ds, it: itemsOn(ds) }));
+  if (kind === "day") {
+    const it = itemsOn(state.selected);
+    const title = state.selected === today ? "Today" : fmtLong(state.selected);
+    return `<h2 class="b-title">${esc(title)}</h2><div class="b-sub">${countText(it.events.length, it.tasks.length, it.payments.length) || "Nothing scheduled"}</div><div class="b-list">${sortedRows(it)}</div>`;
+  }
+  const week = weekDates(state.selected);
+  const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
   const total = (k) => days.reduce((n, d) => n + d.it[k].length, 0);
   const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length)
     .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it)}`).join("");
-  return `<div class="section-sub">${countText(total("events"), total("tasks"), total("payments")) || "Nothing scheduled"}</div><div class="list">${groups}</div>`;
+  const title = today >= week[0] && today <= week[6] ? "This Week" : "Week";
+  return `<h2 class="b-title">${title}</h2><div class="b-sub">${countText(total("events"), total("tasks"), total("payments")) || "Nothing scheduled"}</div><div class="b-list">${groups}</div>`;
 }
 
-const panelHTML = () => `<div class="pills" id="pills">${pillsHTML()}</div><div id="panel-body">${bodyHTML()}</div>`;
+const panelHTML = () => `<div class="bubbles"><section class="bubble" data-bubble="day">${bubbleHTML("day")}</section><section class="bubble" data-bubble="week">${bubbleHTML("week")}</section></div>`;
 
 function renderCalendar() {
   const y = state.view.getFullYear(), m = state.view.getMonth();
@@ -221,13 +216,12 @@ function render({ enter = false } = {}) {
 
 // Swap the day panel below the grid without touching the rest of the page.
 function updatePanel() {
-  const pills = document.getElementById("pills"), body = document.getElementById("panel-body");
-  if (!pills || !body) return;
-  const fresh = document.createElement("div"); fresh.innerHTML = pillsHTML();
-  [...pills.children].forEach((p, i) => { p.textContent = fresh.children[i].textContent; p.classList.toggle("on", fresh.children[i].classList.contains("on")); });
-  body.innerHTML = bodyHTML();
-  rise(body.firstElementChild);
-  [...body.lastElementChild.children].forEach((r, j) => rise(r, 40 + j * 40));
+  document.querySelectorAll("[data-bubble]").forEach((el, i) => {
+    el.innerHTML = bubbleHTML(el.dataset.bubble);
+    rise(el.querySelector(".b-title"), i * 40);
+    rise(el.querySelector(".b-sub"), 30 + i * 40);
+    [...el.querySelector(".b-list").children].forEach((r, j) => rise(r, 70 + i * 40 + j * 35));
+  });
 }
 
 let monthBusy = false;
@@ -362,11 +356,6 @@ document.addEventListener("click", (e) => {
     const a = q("[data-act]").dataset.act;
     if (a === "search") return openSearch();
     if (a === "add") return openForm(addTypeForTab[state.tab]);
-  }
-  if (q("[data-range]")) {
-    const range = q("[data-range]").dataset.range;
-    if (range !== state.range) { state.range = range; updatePanel(); }
-    return;
   }
   if (q("[data-toggle]")) {
     const task = state.data.tasks.find((x) => x.id === q("[data-toggle]").dataset.toggle);
