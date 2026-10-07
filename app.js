@@ -111,9 +111,6 @@ const sortedRows = (it) => [
   ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
   ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
 ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x)).join("");
-const countText = (e, t, p) => [
-  e && `${e} Event${e > 1 ? "s" : ""}`, t && `${t} Task${t > 1 ? "s" : ""}`, p && `${p} Payment${p > 1 ? "s" : ""}`,
-].filter(Boolean).join(", ");
 
 // Two bubbles side by side, both always visible: the selected day, and its week.
 function bubbleHTML(kind) {
@@ -121,7 +118,8 @@ function bubbleHTML(kind) {
   if (kind === "day") {
     const it = itemsOn(state.selected);
     const title = state.selected === today ? "Today" : fmtLong(state.selected);
-    return `<h2 class="b-title">${esc(title)}</h2><div class="b-sub">${countText(it.events.length, it.tasks.length, it.payments.length) || "Nothing scheduled"}</div><div class="b-list">${sortedRows(it)}</div>`;
+    const rows = sortedRows(it);
+    return `<h2 class="b-title">${esc(title)}</h2>${rows ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${rows}</div>`;
   }
   const week = weekDates(state.selected);
   const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
