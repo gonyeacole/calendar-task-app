@@ -63,8 +63,6 @@ const itemsOn = (ds) => ({
 const I = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>',
-  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
-  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
   calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   todo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/></svg>',
   payments: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V9.5A3.5 3.5 0 0 1 7.5 6H19M16 3l3 3-3 3"/><path d="M20 13v1.5a3.5 3.5 0 0 1-3.5 3.5H5M8 21l-3-3 3-3"/></svg>',
@@ -75,27 +73,31 @@ const TABS = [
 ];
 
 // ---------- shared pieces ----------
-function header(title, sub, { search = true, add = true, nav = false } = {}) {
+function header(title, sub, { search = true, add = true } = {}) {
   return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
     <div class="actions">
-      ${nav ? `<button class="icon-btn" data-act="prev" aria-label="Previous month">${I.prev}</button><button class="icon-btn" data-act="next" aria-label="Next month">${I.next}</button>` : ""}
       ${search ? `<button class="icon-btn" data-act="search" aria-label="Search">${I.search}</button>` : ""}
       ${add ? `<button class="icon-btn" data-act="add" aria-label="Add">${I.plus}</button>` : ""}
     </div></div>`;
 }
 
+function taskMeta(t, showDate) {
+  const bits = [showDate && t.due ? fmtLong(t.due) : "", fmtTime(t.time)].filter(Boolean).join(" · ");
+  return bits ? `<div class="meta">${bits}</div>` : "";
+}
+
 function row(kind, item, { showDate = false } = {}) {
   if (kind === "task") {
     return `<button class="row ${item.done ? "done" : ""}" data-edit="task:${item.id}">
-      <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"><i></i></span>
-      <span class="body"><div class="title">${esc(item.title)}</div>${item.due ? `<div class="meta">${showDate ? fmtLong(item.due) : "Due"}</div>` : ""}</span></button>`;
+      <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
+      <span class="body"><div class="title">${esc(item.title)}</div>${taskMeta(item, showDate)}</span></button>`;
   }
   if (kind === "payment") {
-    return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"><i></i></span>
+    return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"></span>
       <span class="body"><div class="title">${esc(item.title)}</div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " : ""}${FREQS[item.freq]}</div></span>
       <span class="amount">${money(item.amount)}</span></button>`;
   }
-  return `<button class="row" data-edit="event:${item.id}"><span class="marker"><i></i></span>
+  return `<button class="row" data-edit="event:${item.id}"><span class="marker"></span>
     <span class="body"><div class="title">${esc(item.title)}</div><div class="meta">${showDate ? fmtLong(item.date) + (item.time ? " · " : "") : ""}${item.time ? fmtTime(item.time) : showDate ? "" : "All day"}</div></span></button>`;
 }
 
@@ -124,8 +126,12 @@ function renderCalendar() {
     it.payments.length && `${it.payments.length} Payment${it.payments.length > 1 ? "s" : ""}`,
   ].filter(Boolean).join(", ") || "Nothing scheduled";
   const label = state.selected === today ? "Today" : fmtLong(state.selected);
-  const rows = [...it.events.map((e) => row("event", e)), ...it.tasks.map((t) => row("task", t)), ...it.payments.map((p) => row("payment", p))].join("");
-  return `${header(MONTHS[m], String(y), { nav: true })}
+  const rows = [
+    ...it.events.map((x) => ({ kind: "event", x, at: x.time })),
+    ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
+    ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
+  ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x)).join("");
+  return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
     <div class="grid" id="grid">${cells}</div>
     <h2 class="section-title">${esc(label)}</h2><div class="section-sub">${counts}</div>
@@ -192,7 +198,7 @@ function formFields(type, v) {
   const f = (label, input) => `<label class="field">${label}${input}</label>`;
   const title = f("Title", `<input name="title" required autocomplete="off" value="${esc(v.title)}">`);
   if (type === "event") return title + `<div class="field-row">${f("Date", `<input type="date" name="date" required value="${v.date}">`)}${f("Time", `<input type="time" name="time" value="${v.time || ""}">`)}</div>`;
-  if (type === "task") return title + f("Due date (optional)", `<input type="date" name="due" value="${v.due || ""}">`);
+  if (type === "task") return title + `<div class="field-row">${f("Due date (optional)", `<input type="date" name="due" value="${v.due || ""}">`)}${f("Time", `<input type="time" name="time" value="${v.time || ""}">`)}</div>`;
   return title + `<div class="field-row">${f("Amount", `<input type="number" name="amount" step="0.01" min="0" required inputmode="decimal" value="${v.amount ?? ""}">`)}
     ${f("Repeats", `<select name="freq">${Object.entries(FREQS).map(([k, l]) => `<option value="${k}" ${v.freq === k ? "selected" : ""}>${l}</option>`).join("")}</select>`)}</div>`
     + f("First payment date", `<input type="date" name="start" required value="${v.start}">`);
@@ -226,7 +232,7 @@ function openForm(type, item) {
         const fd = Object.fromEntries(new FormData(e.target));
         const next = { ...(item || { id: uid() }), ...fd };
         if (t === "payment") next.amount = parseFloat(fd.amount);
-        if (t === "task") { next.due = fd.due || ""; next.done = item?.done ?? false; }
+        if (t === "task") { next.due = fd.due || ""; next.time = fd.time || ""; next.done = item?.done ?? false; }
         const list = state.data[collection[t]];
         const i = list.findIndex((x) => x.id === next.id);
         i >= 0 ? (list[i] = next) : list.push(next);
@@ -268,8 +274,6 @@ document.addEventListener("click", (e) => {
   if (q("[data-tab]")) { state.tab = q("[data-tab]").dataset.tab; return render(); }
   if (q("[data-act]")) {
     const a = q("[data-act]").dataset.act;
-    if (a === "prev") return shiftMonth(-1);
-    if (a === "next") return shiftMonth(1);
     if (a === "search") return openSearch();
     if (a === "add") return openForm(addTypeForTab[state.tab]);
   }
@@ -292,13 +296,18 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// swipe the grid to change month
+// swipe (touch or mouse drag) on the grid, or use the arrow keys, to change month
 let sx = null;
-document.addEventListener("touchstart", (e) => { sx = e.target.closest("#grid") ? e.touches[0].clientX : null; }, { passive: true });
-document.addEventListener("touchend", (e) => {
+document.addEventListener("pointerdown", (e) => { sx = e.target.closest("#grid") ? e.clientX : null; });
+document.addEventListener("pointerup", (e) => {
   if (sx == null) return;
-  const dx = e.changedTouches[0].clientX - sx; sx = null;
+  const dx = e.clientX - sx; sx = null;
   if (Math.abs(dx) > 50) shiftMonth(dx < 0 ? 1 : -1);
+});
+document.addEventListener("keydown", (e) => {
+  if (state.tab !== "calendar" || sheetRoot.innerHTML || e.target.matches("input, textarea, select")) return;
+  if (e.key === "ArrowLeft") shiftMonth(-1);
+  if (e.key === "ArrowRight") shiftMonth(1);
 });
 
 render();
