@@ -1,0 +1,8 @@
+{
+  "name": "Calendar",
+  "short_name": "Calendar",
+  "display": "standalone",
+  "background_color": "#0d1013",
+  "theme_color": "#0d1013",
+  "start_url": "."
+}
