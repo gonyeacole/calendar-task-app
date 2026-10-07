@@ -2,7 +2,7 @@
   "name": "Calendar",
   "short_name": "Calendar",
   "display": "standalone",
-  "background_color": "#0d1013",
-  "theme_color": "#0d1013",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "start_url": "."
 }
