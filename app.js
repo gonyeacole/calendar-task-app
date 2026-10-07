@@ -295,7 +295,7 @@ function formFields(type, v) {
   const f = (label, input) => `<label class="field">${label}${input}</label>`;
   const title = f("Title", `<input name="title" required autocomplete="off" value="${esc(v.title)}">`);
   if (type === "event") return title + `<div class="fcard ${v.allDay ? "allday" : ""}">
-    <div class="frow"><span>All-day</span><label class="switch"><input type="checkbox" name="allDay" ${v.allDay ? "checked" : ""}><i></i></label></div>
+    <div class="frow bubble"><span>All-day</span><label class="switch"><input type="checkbox" name="allDay" ${v.allDay ? "checked" : ""}><i></i></label></div>
     ${frow("Starts", pillDate("date", v.date, "required") + pillTime("time", v.time))}
     ${frow("Ends", pillDate("endDate", v.endDate) + pillTime("endTime", v.endTime))}</div>`;
   if (type === "task") return title + `<div class="fcard">${frow("Due", pillDate("due", v.due) + pillTime("time", v.time))}</div>`;
