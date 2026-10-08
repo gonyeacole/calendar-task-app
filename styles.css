@@ -53,9 +53,9 @@ svg { display: block; }
 #view { padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 120px; }
 /* Everything except the grid sits 15px in from the page edge, so its edges line up with the first and last columns of dates */
 #view > :not(.dow):not(.grid) { padding-inline: 15px; }
-.head { display: flex; align-items: flex-start; justify-content: space-between; padding-top: 14px; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; padding-top: 14px; padding-bottom: 4px; }
 .head h1 { margin: 0; text-transform: uppercase; font-family: var(--display); font-size: 21px; line-height: 31px; font-weight: 700; letter-spacing: .2px; }
-.head .sub { display: flex; align-items: center; color: var(--muted); text-transform: uppercase; font-family: var(--display); font-weight: 400; font-size: 12px; line-height: 18px; letter-spacing: 1px; margin-top: 0; }
+.head .sub { display: flex; align-items: center; color: var(--muted); text-transform: uppercase; font-family: var(--display); font-weight: 700; font-size: 12px; line-height: 18px; letter-spacing: 1px; margin-top: -4px; }
 .head .actions { display: flex; gap: 20px; align-items: center; padding-top: 7px; }
 .icon-btn { width: 16px; height: 16px; }
 .icon-btn svg { width: 16px; height: 16px; }
