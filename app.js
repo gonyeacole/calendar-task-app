@@ -207,8 +207,9 @@ function renderCalendar() {
     const dow = d.getDay();
     const bars = multi.filter((e) => e.date <= ds && ds <= e.endDate && lane.get(e.id) < 2).map((e) => {
       const capL = ds === e.date || dow === 0, capR = ds === e.endDate || dow === 6;   // rounded ends at the real start/end and at week edges
-      const l = ds === e.date ? 9 : dow === 0 ? 4 : 0, r = ds === e.endDate ? 9 : dow === 6 ? 4 : 0;
-      return `<i class="bar l${lane.get(e.id)}" style="left:${l}px;right:${r}px;border-radius:${capL ? 2 : 0}px ${capR ? 2 : 0}px ${capR ? 2 : 0}px ${capL ? 2 : 0}px"></i>`;
+      // starts/ends at the middle of the date number; at a week edge it stops where the page content stops (15px in)
+      const l = ds === e.date ? "50%" : dow === 0 ? "15px" : "0", r = ds === e.endDate ? "50%" : dow === 6 ? "15px" : "0";
+      return `<i class="bar l${lane.get(e.id)}" style="left:${l};right:${r};border-radius:${capL ? 2 : 0}px ${capR ? 2 : 0}px ${capR ? 2 : 0}px ${capL ? 2 : 0}px"></i>`;
     }).join("");
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
       <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${bars}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
