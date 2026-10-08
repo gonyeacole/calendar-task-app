@@ -697,14 +697,19 @@ render();
 // iOS home-screen apps report a page height shorter than the screen (by the status-bar inset) and leave the strip below blank,
 // unless the document itself is as tall as the screen. Make it so, and keep everything pinned to the real screen edges.
 function fitScreen() {
+  // iOS reports the layout height late and inconsistently at launch/resume, so this re-runs on every signal below.
+  // Home-screen mode is detected two ways (navigator.standalone is iOS's own flag; the media query covers the rest).
+  const standalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   const gap = screen.height - innerHeight;
-  const short = matchMedia("(display-mode: standalone)").matches && innerWidth < innerHeight && gap > 0 && gap <= 70;
+  const short = standalone && innerWidth < innerHeight && gap > 0 && gap <= 120;
   const root = document.documentElement;
   root.classList.toggle("tall-screen", short);
   root.style.setProperty("--app-h", short ? `${screen.height}px` : "");
 }
 fitScreen();
-addEventListener("resize", fitScreen);
+for (const t of [50, 300, 1000]) setTimeout(fitScreen, t);
+for (const ev of ["resize", "pageshow", "focus"]) addEventListener(ev, fitScreen);
+document.addEventListener("visibilitychange", fitScreen);
 addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
 // the document is taller than the viewport in that mode; never let it scroll away from the top
 addEventListener("scroll", () => { if (scrollY && document.documentElement.classList.contains("tall-screen")) scrollTo(0, 0); }, { passive: true });
