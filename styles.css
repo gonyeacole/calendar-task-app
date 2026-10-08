@@ -11,6 +11,7 @@
   --line: rgba(0, 0, 0, .12);
   --event: #c8452c;
   --birthday: #7fae00;
+  --holiday: #2f6db5;
   --range: color-mix(in srgb, var(--event) 30%, var(--bg));   /* solid, so touching bands never show seams */
   --glass: rgba(255, 255, 255, .62);
   --glass-edge: rgba(0, 0, 0, .08);
@@ -25,12 +26,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
+    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --holiday: #4ea1ff; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
+  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --holiday: #4ea1ff; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -81,12 +82,13 @@ svg { display: block; }
 .day.sel.today .num { color: var(--bg); }
 .dots { position: absolute; left: 0; right: 0; bottom: 7.5px; display: flex; justify-content: center; gap: 2.5px; height: 5px; }
 .dots { z-index: 1; transition: opacity .2s ease; }
-.day.sel .dot:not(.event):not(.birthday) { background: var(--bg); }
+.day.sel .dot:not(.event):not(.birthday):not(.holiday) { background: var(--bg); }
 .day.sel .dot.task { background: none; box-shadow: inset 0 0 0 1px var(--bg); }
 .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text); }
 .dot.task { background: none; box-shadow: inset 0 0 0 1px var(--text); }
 .dot.event { background: var(--event); }
 .dot.birthday { background: var(--birthday); }
+.dot.holiday { background: var(--holiday); }
 .dot.payment { border-radius: 1px; transform: rotate(45deg) scale(.85); }
 
 /* lists */
@@ -109,6 +111,7 @@ svg { display: block; }
 .marker.task { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
 .marker.task.done { background: var(--text); box-shadow: none; }
 .marker.birthday { background: var(--birthday); }
+.marker.holiday { background: var(--holiday); }
 .marker.payment { background: var(--text); border-radius: 1.5px; transform: rotate(45deg) scale(.85); }
 .row .body { flex: 1; min-width: 0; }
 .row .title { font-size: 15px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

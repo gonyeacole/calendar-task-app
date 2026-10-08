@@ -25,6 +25,29 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // Does recurring payment `p` fall on date string `ds`?
+// US holidays, worked out from their rules so they appear in every year (the usual US Holidays set)
+const nthWeekday = (y, m, wd, n) => 1 + ((wd - new Date(y, m, 1).getDay() + 7) % 7) + (n - 1) * 7;
+const lastWeekday = (y, m, wd) => { const last = new Date(y, m + 1, 0); return last.getDate() - ((last.getDay() - wd + 7) % 7); };
+function easter(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, mm = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * mm + 114) / 31), day = ((h + l - 7 * mm + 114) % 31) + 1;
+  return [month - 1, day];
+}
+const holidayCache = {};
+function holidaysOfYear(y) {
+  if (holidayCache[y]) return holidayCache[y];
+  const map = {}, add = (m, d, name) => { const k = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`; (map[k] ||= []).push(name); };
+  add(0, 1, "New Year's Day"); add(0, nthWeekday(y, 0, 1, 3), "Martin Luther King Jr. Day"); add(1, 14, "Valentine's Day");
+  add(1, nthWeekday(y, 1, 1, 3), "Presidents' Day"); add(2, nthWeekday(y, 2, 0, 2), "Daylight Saving Time starts"); add(2, 17, "St. Patrick's Day");
+  add(...easter(y), "Easter Sunday"); add(4, nthWeekday(y, 4, 0, 2), "Mother's Day"); add(4, lastWeekday(y, 4, 1), "Memorial Day");
+  add(5, nthWeekday(y, 5, 0, 3), "Father's Day"); add(5, 19, "Juneteenth"); add(6, 4, "Independence Day"); add(8, nthWeekday(y, 8, 1, 1), "Labor Day");
+  add(9, nthWeekday(y, 9, 1, 2), "Columbus Day"); add(9, 31, "Halloween"); add(10, nthWeekday(y, 10, 0, 1), "Daylight Saving Time ends");
+  add(10, 11, "Veterans Day"); add(10, nthWeekday(y, 10, 4, 4), "Thanksgiving"); add(11, 25, "Christmas Day");
+  return (holidayCache[y] = map);
+}
+const holidaysOn = (ds) => holidaysOfYear(+ds.slice(0, 4))[ds] || [];
+
 function paymentOn(p, ds) {
   if (ds < p.start) return false;
   const d = parse(ds), s = parse(p.start);
@@ -97,6 +120,7 @@ const itemsOn = (ds) => ({
   tasks: state.data.tasks.filter((t) => t.due === ds),
   payments: state.data.payments.filter((p) => paymentOn(p, ds)),
   birthdays: state.data.birthdays.filter((b) => birthdayOn(b, ds)),
+  holidays: holidaysOn(ds),
 });
 
 // ---------- icons ----------
@@ -153,6 +177,9 @@ function row(kind, item, { showDate = false, ds = "", compact = false } = {}) {
       <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
       <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div>${taskMeta(item, showDate)}</span></button>`;
   }
+  if (kind === "holiday") {
+    return `<div class="row"><span class="marker holiday"></span><span class="body"><div class="title"><span class="t">${esc(item)}</span></div><div class="meta">Holiday</div></span></div>`;
+  }
   if (kind === "birthday") {
     const turns = turnsOn(item, ds || nextBirthday(item));
     const meta = showDate ? [parse(ds).toLocaleDateString(undefined, { month: "short", day: "numeric" }), turns].filter(Boolean).join(" · ") : ["Birthday", turns].filter(Boolean).join(" · ");
@@ -179,6 +206,7 @@ const sortedRows = (it, ds) => [
   ...it.tasks.map((x) => ({ kind: "task", x, at: x.time })),
   ...it.payments.map((x) => ({ kind: "payment", x, at: "" })),
   ...it.birthdays.map((x) => ({ kind: "birthday", x, at: "" })),
+  ...it.holidays.map((x) => ({ kind: "holiday", x, at: "" })),
 ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x, { ds })).join("");
 
 // Two bubbles side by side, both always visible: the selected day, and its week.
@@ -187,7 +215,7 @@ function cardHTML() {
   const today = todayIso(), sel = state.selected, week = weekDates(sel);
   const rows = sortedRows(itemsOn(sel), sel);
   const later = week.filter((ds) => ds > sel).map((ds) => ({ ds, it: itemsOn(ds) }))
-    .filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length)
+    .filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length + d.it.holidays.length)
     .map((d) => `<div class="day-label">${fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
   const weekTitle = today >= week[0] && today <= week[6] ? "Later this week" : "Rest of the week";
   // Only show what has something in it; with nothing on the day or later in the week, no card at all.
@@ -215,6 +243,7 @@ function renderCalendar() {
       ...it.tasks.map(() => "task"),
       ...it.payments.map(() => "payment"),
       ...it.birthdays.map(() => "birthday"),
+      ...it.holidays.map(() => "holiday"),
     ].slice(0, 4).map((k) => `<i class="dot ${k}"></i>`).join("");
     const dow = d.getDay();
     const spans = multi.filter((e) => e.date <= ds && ds <= e.endDate).map((e) => {
