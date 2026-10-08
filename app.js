@@ -182,23 +182,22 @@ const sortedRows = (it, ds) => [
 ].sort((a, b) => (a.at || "99:99").localeCompare(b.at || "99:99")).map((r) => row(r.kind, r.x, { ds })).join("");
 
 // Two bubbles side by side, both always visible: the selected day, and its week.
-function bubbleHTML(kind) {
-  const today = todayIso();
-  if (kind === "day") {
-    const it = itemsOn(state.selected);
-    const title = state.selected === today ? "Today" : fmtLong(state.selected);
-    const rows = sortedRows(it, state.selected);
-    return `<h2 class="b-title">${esc(title)}</h2>${rows ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${rows}</div>`;
-  }
-  const week = weekDates(state.selected);
-  const days = week.map((ds) => ({ ds, it: itemsOn(ds) }));
-  const groups = days.filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length)
-    .map((d) => `<div class="day-label">${d.ds === today ? "Today" : fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
-  const title = today >= week[0] && today <= week[6] ? "This Week" : "Week";
-  return `<h2 class="b-title">${title}</h2>${groups ? "" : `<div class="b-sub">Nothing scheduled</div>`}<div class="b-list">${groups}</div>`;
+// One card: the selected day on top, then the rest of its week (the selected day is not repeated).
+function cardHTML() {
+  const today = todayIso(), sel = state.selected, week = weekDates(sel);
+  const rows = sortedRows(itemsOn(sel), sel);
+  const later = week.filter((ds) => ds > sel).map((ds) => ({ ds, it: itemsOn(ds) }))
+    .filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length)
+    .map((d) => `<div class="day-label">${fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
+  const dayTitle = sel === today ? "Today" : fmtLong(sel);
+  const weekTitle = today >= week[0] && today <= week[6] ? "Later this week" : "Rest of the week";
+  const none = `<div class="b-sub">Nothing scheduled</div>`;
+  return `<h2 class="b-title">${esc(dayTitle)}</h2>${rows ? "" : none}<div class="b-list">${rows}</div>
+    <div class="b-sep"></div>
+    <h2 class="b-title">${weekTitle}</h2>${later ? "" : none}<div class="b-list">${later}</div>`;
 }
 
-const panelHTML = () => `<div class="bubbles"><section class="bubble" data-bubble="day">${bubbleHTML("day")}</section><section class="bubble" data-bubble="week">${bubbleHTML("week")}</section></div>`;
+const panelHTML = () => `<div class="bubbles"><section class="bubble">${cardHTML()}</section></div>`;
 
 function renderCalendar() {
   const y = state.view.getFullYear(), m = state.view.getMonth();
@@ -302,12 +301,10 @@ function render({ enter = false } = {}) {
 
 // Swap the day panel below the grid without touching the rest of the page.
 function updatePanel() {
-  document.querySelectorAll("[data-bubble]").forEach((el, i) => {
-    el.innerHTML = bubbleHTML(el.dataset.bubble);
-    rise(el.querySelector(".b-title"), i * 40);
-    rise(el.querySelector(".b-sub"), 30 + i * 40);
-    [...el.querySelector(".b-list").children].forEach((r, j) => rise(r, 70 + i * 40 + j * 35));
-  });
+  const card = document.querySelector("#panel .bubble"); if (!card) return;
+  card.innerHTML = cardHTML();
+  card.querySelectorAll(".b-title, .b-sub").forEach((el, i) => rise(el, i * 25));
+  card.querySelectorAll(".b-list").forEach((list, s) => [...list.children].forEach((r, j) => rise(r, 50 + s * 70 + j * 35)));
 }
 
 let monthBusy = false;
