@@ -194,7 +194,7 @@ function renderCalendar() {
       ...it.birthdays.map(() => "birthday"),
     ].slice(0, 4).map((k) => `<i class="dot ${k}"></i>`).join("");
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
-      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span><span class="plus" aria-hidden="true">${I.plus}</span></button>`;
   }
   return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
@@ -375,10 +375,11 @@ function wireEventForm(form) {
   });
 }
 
-function openForm(type, item) {
+function openForm(type, item, preset) {
   const editing = !!item;
-  const soon = (() => {                                  // next full hour today, otherwise 9:00 on the selected day
-    if (state.selected !== todayIso()) return { date: state.selected, time: "09:00" };
+  const base = preset?.date || state.selected;
+  const soon = (() => {                                  // next full hour today, otherwise 9:00 on the chosen day
+    if (base !== todayIso()) return { date: base, time: "09:00" };
     const x = new Date(); x.setMinutes(0, 0, 0); x.setHours(x.getHours() + 1); return { date: iso(x), time: hm(x) };
   })();
   const soonEnd = plusHour(soon.date, soon.time);
@@ -388,6 +389,7 @@ function openForm(type, item) {
     payment: { title: "", amount: "", freq: "monthly", start: state.selected },
     birthday: { title: "", date: state.selected, noYear: false },
   };
+  if (preset && !item) Object.assign(defaults.event, preset);
   const names = { event: "Event", task: "Task", payment: "Payment", birthday: "Birthday" };
   const asForm = (e) => {                                // saved event -> form values (no end saved yet = one hour; no time = all-day)
     const end = e.time ? plusHour(e.date, e.time) : { date: e.date, time: "" };
@@ -459,6 +461,10 @@ let reflow, justDragged = false;
 document.addEventListener("click", (e) => {
   const t = e.target;
   const q = (sel) => t.closest(sel);
+  if (justDragged) return;                       // the click that follows a hold or a drag is not a tap
+  const plusCell = q(".day.plus");
+  clearPlus();
+  if (plusCell) return openForm("event", null, { date: plusCell.dataset.day });
   if (q("[data-close]") || t.matches("[data-scrim]")) return closeSheet();
   if (q("[data-tab]")) {
     const tab = q("[data-tab]").dataset.tab;
@@ -526,6 +532,63 @@ const endDrag = () => {
 };
 document.addEventListener("pointerup", endDrag);
 document.addEventListener("pointercancel", endDrag);
+// Hold a date for half a second and a + appears on it; keep holding and drag across days to pick a range.
+const HOLD_MS = 500;
+let hold = null, tip = null;
+const shortDate = (ds) => parse(ds).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const dayAt = (x, y) => document.elementFromPoint(x, y)?.closest?.("#grid [data-day]")?.dataset.day;
+function clearPlus() { document.querySelectorAll(".day.plus").forEach((c) => c.classList.remove("plus")); }
+function clearRange() { document.querySelectorAll("#grid .rng, #grid .rs, #grid .re, #grid .rend, #grid .plus").forEach((c) => c.classList.remove("rng", "rs", "re", "rend", "plus")); }
+const span2 = (a, b) => (a <= b ? [a, b] : [b, a]);
+function paintRange(a, b) {
+  const [lo, hi] = span2(a, b), many = lo !== hi;
+  document.querySelectorAll("#grid [data-day]").forEach((c) => {
+    const ds = c.dataset.day, inside = ds >= lo && ds <= hi, dow = parse(ds).getDay();
+    c.classList.toggle("plus", inside && !many);
+    c.classList.toggle("rng", inside && many);
+    c.classList.toggle("rs", inside && many && (ds === lo || dow === 0));
+    c.classList.toggle("re", inside && many && (ds === hi || dow === 6));
+    c.classList.toggle("rend", inside && many && (ds === lo || ds === hi));
+  });
+  if (!many) { tip?.remove(); return; }
+  if (!tip) { tip = document.createElement("div"); tip.className = "range-tip"; }
+  tip.textContent = `${shortDate(lo)} – ${shortDate(hi)} · ${daysBetween(lo, hi) + 1} days`;
+  tip.style.top = `${document.getElementById("grid").getBoundingClientRect().bottom + 2}px`;
+  if (!tip.isConnected) document.body.append(tip);
+}
+document.addEventListener("pointerdown", (e) => {
+  clearTimeout(hold?.timer);
+  const cell = e.target.closest("#grid [data-day]");
+  if (!cell || monthBusy) { hold = null; return; }
+  const h = (hold = { x: e.clientX, y: e.clientY, from: cell.dataset.day, to: cell.dataset.day, active: false });
+  h.timer = setTimeout(() => { h.active = true; drag = null; clearPlus(); paintRange(h.from, h.from); }, HOLD_MS);
+});
+document.addEventListener("pointermove", (e) => {
+  if (!hold) return;
+  if (!hold.active) {                             // moved before the hold finished: that is a swipe, not a hold
+    if (Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 6) { clearTimeout(hold.timer); hold = null; }
+    return;
+  }
+  const ds = dayAt(e.clientX, e.clientY);
+  if (ds && ds !== hold.to) { hold.to = ds; paintRange(hold.from, ds); }
+});
+function endHold(cancelled) {
+  if (!hold) return;
+  clearTimeout(hold.timer);
+  const h = hold; hold = null;
+  if (!h.active) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 80);
+  const [lo, hi] = span2(h.from, h.to);
+  tip?.remove(); tip = null;
+  if (lo === hi && !cancelled) return;            // a single held date keeps its +; tap it to add an event
+  clearRange();
+  if (!cancelled) openForm("event", null, { date: lo, endDate: hi, allDay: true, time: "", endTime: "" });
+}
+document.addEventListener("pointerup", () => endHold(false));
+document.addEventListener("pointercancel", () => endHold(true));
+document.addEventListener("touchmove", (e) => { if (hold?.active) e.preventDefault(); }, { passive: false });
+document.addEventListener("contextmenu", (e) => { if (e.target.closest?.("#grid")) e.preventDefault(); });
+
 document.addEventListener("keydown", (e) => {
   if (state.tab !== "calendar" || liveScrim() || e.target.matches("input, textarea, select")) return;
   if (e.key === "ArrowLeft") changeMonth(-1);

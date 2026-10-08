@@ -11,6 +11,7 @@
   --line: rgba(0, 0, 0, .12);
   --event: #c8452c;
   --birthday: #7fae00;
+  --range: rgba(200, 69, 44, .22);
   --dow: #6b6253;
   --ease: cubic-bezier(.22, .8, .24, 1);
   --display: "Syncopate", "Arial Narrow", Arial, sans-serif;
@@ -20,12 +21,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --dow: #b4b9be; 
+    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --range: rgba(217, 74, 46, .32); --dow: #b4b9be; 
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --dow: #b4b9be; 
+  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --range: rgba(217, 74, 46, .32); --dow: #b4b9be; 
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -205,3 +206,32 @@ svg { display: block; }
 html.tall-screen { min-height: var(--app-h); overflow: hidden; overscroll-behavior: none; }
 html.tall-screen body { overflow: hidden; }
 html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h); }
+
+/* hold a date: + appears; keep holding and drag to pick several days */
+#grid { -webkit-touch-callout: none; }
+.day .num { transition: color .25s var(--ease), opacity .18s ease, transform .3s var(--ease); }
+.day .plus {
+  position: absolute; z-index: 3; width: 41px; height: 41px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--event); color: #fff; pointer-events: none; opacity: 0; transform: scale(.5);
+  transition: opacity .16s ease, transform .32s var(--ease);
+}
+.day .plus svg { width: 20px; height: 20px; }
+.day.plus .plus { opacity: 1; transform: none; }
+.day.plus .num, .day.plus .dots { opacity: 0; }
+.day::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 41px; transform: translateY(-50%) scaleY(.6);
+  background: var(--range); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .25s var(--ease);
+}
+.day.rng::before { opacity: 1; transform: translateY(-50%); }
+.day.rs::before { left: 4.5px; border-radius: 999px 0 0 999px; }
+.day.re::before { right: 4.5px; border-radius: 0 999px 999px 0; }
+.day.rs.re::before { border-radius: 999px; }
+.day.rend .num { color: #fff; }
+.day.rend .num::before { opacity: 1; transform: none; background: var(--event); }
+.range-tip {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 30; padding: 7px 14px; border-radius: 999px;
+  background: var(--event); color: #fff; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+  pointer-events: none; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  animation: tip-in .22s var(--ease) both;
+}
+@keyframes tip-in { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.92); } }
