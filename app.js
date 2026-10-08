@@ -116,7 +116,7 @@ const TABS = [
 
 // ---------- shared pieces ----------
 function header(title, sub, { add = true } = {}) {
-  return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub"><span>${esc(sub)}</span></div></div>
+  return `<div class="head"><div><h1>${esc(title)}</h1>${sub ? `<div class="sub"><span>${esc(sub)}</span></div>` : ""}</div>
     <div class="actions">
       <button class="icon-btn" data-act="theme" aria-label="Switch between light and dark">${currentTheme() === "dark" ? I.moon : I.sun}</button>
       ${add ? `<button class="icon-btn" data-act="add" aria-label="Add">${I.plus}</button>` : ""}
@@ -250,7 +250,7 @@ function renderPayments() {
     const due = nextDue(p), n = daysBetween(todayIso(), due);
     return `<button class="pay-tile ${i === 0 ? "hot" : ""}" data-edit="payment:${p.id}"><span class="cap">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : fmtLong(due)}</span><b>${esc(p.title)}</b><span class="amount">${money(p.amount)}</span></button>`;
   }).join("");
-  return `${header("Payments", "Recurring")}
+  return `${header("Payments", "")}
     <div class="total-card"><span>Per month</span><b>${money(total)}</b></div>
     ${ps.length ? `<div class="group-label">Due soon</div><div class="pay-strip">${tiles}</div>
       <div class="group-label">All payments</div><div class="pay-card">${ps.map((p) => row("payment", p, { compact: true })).join("")}</div>`
