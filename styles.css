@@ -124,7 +124,7 @@ svg { display: block; }
 /* tab bar */
 #tabs {
   display: flex; border-top: 1px solid var(--line); background: var(--bg);
-  padding: 4px 4px max(4px, calc(env(safe-area-inset-bottom, 0px) - 22px));
+  padding: 4px 4px max(4px, calc(env(safe-area-inset-bottom, 0px) - 20px));
 }
 #tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 500; color: var(--muted); }
 #tabs button { transition: color .25s var(--ease); }
@@ -135,7 +135,7 @@ svg { display: block; }
 #tabs svg { width: 24px; height: 24px; }
 
 /* sheet */
-.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: flex; align-items: flex-end; justify-content: center; z-index: 10; animation: fade .3s ease both; }
+.scrim { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h, 100%); background: rgba(0, 0, 0, .6); display: flex; align-items: flex-end; justify-content: center; z-index: 10; animation: fade .3s ease both; }
 .sheet { width: 100%; max-width: 430px; background: var(--surface); border-radius: 20px 20px 0 0; padding: 18px 20px calc(env(safe-area-inset-bottom) + 20px); max-height: 92%; overflow-y: auto; animation: up .42s cubic-bezier(.32, .72, 0, 1) both; }
 .scrim.closing { animation: fade-out .28s ease both; pointer-events: none; }
 .scrim.closing .sheet { animation: down .28s cubic-bezier(.4, 0, 1, 1) both; }
@@ -201,7 +201,9 @@ svg { display: block; }
 .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: 1; }
 .field textarea { min-height: 104px; resize: none; line-height: 1.35; }
 
-/* Home-screen app on iOS: pin the app to the physical screen edges so the tab bar reaches the bottom */
+/* Home-screen app on iOS reports a page height shorter than the screen (by the status-bar inset).
+   app.js sets --app-h to the real screen height so the tab bar and sheets reach the bottom. */
 @media (display-mode: standalone) {
-  #app { position: fixed; inset: 0; margin: 0 auto; width: 100%; height: auto; }
+  html, body { overflow: hidden; }
+  #app { position: fixed; top: 0; left: 0; right: 0; margin: 0 auto; width: 100%; height: var(--app-h, 100%); }
 }
