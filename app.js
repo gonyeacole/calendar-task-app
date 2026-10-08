@@ -191,13 +191,12 @@ function cardHTML() {
     .map((d) => `<div class="day-label">${fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
   const dayTitle = sel === today ? "Today" : fmtLong(sel);
   const weekTitle = today >= week[0] && today <= week[6] ? "Later this week" : "Rest of the week";
-  const none = `<div class="b-sub">Nothing scheduled</div>`;
-  return `<h2 class="b-title">${esc(dayTitle)}</h2>${rows ? "" : none}<div class="b-list">${rows}</div>
-    <div class="b-sep"></div>
-    <h2 class="b-title">${weekTitle}</h2>${later ? "" : none}<div class="b-list">${later}</div>`;
+  // Only show what has something in it; with nothing on the day or later in the week, no card at all.
+  const dayPart = rows ? `<h2 class="b-title">${esc(dayTitle)}</h2><div class="b-list">${rows}</div>` : "";
+  const weekPart = later ? `<h2 class="b-title">${weekTitle}</h2><div class="b-list">${later}</div>` : "";
+  return dayPart + (dayPart && weekPart ? `<div class="b-sep"></div>` : "") + weekPart;
 }
-
-const panelHTML = () => `<div class="bubbles"><section class="bubble">${cardHTML()}</section></div>`;
+const panelHTML = () => { const c = cardHTML(); return c ? `<div class="bubbles"><section class="bubble">${c}</section></div>` : ""; };
 
 function renderCalendar() {
   const y = state.view.getFullYear(), m = state.view.getMonth();
@@ -301,9 +300,10 @@ function render({ enter = false } = {}) {
 
 // Swap the day panel below the grid without touching the rest of the page.
 function updatePanel() {
-  const card = document.querySelector("#panel .bubble"); if (!card) return;
-  card.innerHTML = cardHTML();
-  card.querySelectorAll(".b-title, .b-sub").forEach((el, i) => rise(el, i * 25));
+  const panel = document.getElementById("panel"); if (!panel) return;
+  panel.innerHTML = panelHTML();
+  const card = panel.querySelector(".bubble"); if (!card) return;
+  card.querySelectorAll(".b-title").forEach((el, i) => rise(el, i * 25));
   card.querySelectorAll(".b-list").forEach((list, s) => [...list.children].forEach((r, j) => rise(r, 50 + s * 70 + j * 35)));
 }
 
