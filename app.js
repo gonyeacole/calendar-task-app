@@ -58,6 +58,27 @@ function nextDue(p, from = todayIso()) {
 }
 const monthlyCost = (p) => p.amount * ({ weekly: 52 / 12, biweekly: 26 / 12, monthly: 1, yearly: 1 / 12 }[p.freq] ?? 1);
 
+// ---------- light / dark ----------
+const THEME_KEY = "calendar-task-app:theme";
+const root = document.documentElement;
+const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+const currentTheme = () => root.dataset.theme || (prefersDark.matches ? "dark" : "light");
+function applyTheme(t) {
+  root.dataset.theme = t;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#000000" : "#f4ead8");
+}
+try { const saved = localStorage.getItem(THEME_KEY); if (saved) applyTheme(saved); } catch {}
+
+function toggleTheme(btn) {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  root.classList.add("theming");                         // fade colors across instead of snapping
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch {}
+  btn.innerHTML = next === "dark" ? I.moon : I.sun;
+  animate(btn, [{ transform: "scale(.5) rotate(-70deg)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 420 });
+  setTimeout(() => root.classList.remove("theming"), 500);
+}
+
 // ---------- state ----------
 const state = {
   tab: "calendar",
@@ -80,7 +101,8 @@ const itemsOn = (ds) => ({
 
 // ---------- icons ----------
 const I = {
-  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>',
   calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   todo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/></svg>',
@@ -93,10 +115,10 @@ const TABS = [
 ];
 
 // ---------- shared pieces ----------
-function header(title, sub, { search = true, add = true } = {}) {
+function header(title, sub, { add = true } = {}) {
   return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
     <div class="actions">
-      ${search ? `<button class="icon-btn" data-act="search" aria-label="Search">${I.search}</button>` : ""}
+      <button class="icon-btn" data-act="theme" aria-label="Switch between light and dark">${currentTheme() === "dark" ? I.moon : I.sun}</button>
       ${add ? `<button class="icon-btn" data-act="add" aria-label="Add">${I.plus}</button>` : ""}
     </div></div>`;
 }
@@ -315,7 +337,7 @@ function selectDay(ds) {
   updatePanel();
 }
 
-// ---------- sheets (add / edit / search) ----------
+// ---------- sheets (add / edit) ----------
 const sheetRoot = document.getElementById("sheet-root");
 const liveScrim = () => sheetRoot.querySelector(".scrim:not(.closing)");
 function closeSheet() {
@@ -448,23 +470,6 @@ function openForm(type, item, preset) {
   draw(type);
 }
 
-function openSearch() {
-  const result = (q) => {
-    q = q.trim().toLowerCase();
-    if (!q) return "";
-    const hit = (x) => x.title.toLowerCase().includes(q);
-    const { events, tasks, payments, birthdays } = state.data;
-    const html = [...events.filter(hit).map((e) => row("event", e, { showDate: true })), ...tasks.filter(hit).map((t) => row("task", t, { showDate: true })), ...payments.filter(hit).map((p) => row("payment", p, { showDate: true })), ...birthdays.filter(hit).map((b) => row("birthday", b, { showDate: true, ds: nextBirthday(b) }))].join("");
-    return html || `<div class="empty">No results</div>`;
-  };
-  openSheet(`<div class="sheet-head"><h2>Search</h2><button class="link" data-close>Done</button></div>
-    <input class="search-input" placeholder="Search events, tasks, payments, birthdays" autocomplete="off"><div class="list" id="results"></div>`, (sheet) => {
-    const input = sheet.querySelector("input"), out = sheet.querySelector("#results");
-    input.focus();
-    input.addEventListener("input", () => { out.innerHTML = result(input.value); });
-  });
-}
-
 // ---------- events ----------
 const addTypeForTab = { calendar: "event", events: "event", todo: "task", payments: "payment", birthdays: "birthday" };
 
@@ -484,7 +489,7 @@ document.addEventListener("click", (e) => {
   }
   if (q("[data-act]")) {
     const a = q("[data-act]").dataset.act;
-    if (a === "search") return openSearch();
+    if (a === "theme") return toggleTheme(q("[data-act]"));
     if (a === "add") return openForm(addTypeForTab[state.tab]);
   }
   if (q("[data-toggle]")) {

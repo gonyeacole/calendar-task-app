@@ -187,7 +187,6 @@ svg { display: block; }
 .field-row { display: flex; gap: 10px; }
 .field-row .field { flex: 1; }
 .danger { color: var(--event); width: 100%; padding: 12px; margin-top: 4px; font-weight: 500; }
-.search-input { width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--surface); border: 0; border-radius: 10px; padding: 11px 12px; margin-top: 4px; }
 
 /* event / task / payment form: rows with separate date and time bubbles */
 .fcard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -263,3 +262,8 @@ html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h)
 .day.out .span { opacity: .55; }
 .day.ev-end:not(.sel) .num { color: #fff; }
 .day.ev-end:not(.sel) .num::before { inset: 0; opacity: 1; transform: none; background: var(--event); }
+
+/* light / dark switch: fade every color together for a moment */
+html.theming, html.theming *, html.theming *::before, html.theming *::after {
+  transition: background-color .4s ease, color .4s ease, border-color .4s ease, box-shadow .4s ease, fill .4s ease, stroke .4s ease !important;
+}
