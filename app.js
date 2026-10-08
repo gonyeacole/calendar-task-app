@@ -278,8 +278,9 @@ function render({ enter = false } = {}) {
   view.scrollTop = top;
   const tabs = document.getElementById("tabs");
   if (!tabs.children.length) {
-    tabs.innerHTML = TABS.map(([k, label]) => `<button data-tab="${k}">${I[k]}<span>${label}</span></button>`).join("");
+    tabs.innerHTML = `<span class="tab-pill" aria-hidden="true"></span>` + TABS.map(([k, label]) => `<button data-tab="${k}">${I[k]}<span>${label}</span></button>`).join("");
   }
+  tabs.style.setProperty("--i", TABS.findIndex(([k]) => k === state.tab));   // the glass pill glides to this slot
   tabs.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
   if (enter) [...view.children].forEach((el, i) => rise(el, Math.min(i, 6) * 25));
 }
