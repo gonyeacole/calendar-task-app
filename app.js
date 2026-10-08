@@ -695,19 +695,10 @@ document.addEventListener("keydown", (e) => {
 render();
 
 // iOS home-screen apps report a page height shorter than the screen (by the status-bar inset) and leave the strip below blank,
-// unless the document itself is as tall as the screen. Make it so, and keep everything pinned to the real screen edges.
-function fitScreen() {
-  // iOS reports the layout height late and inconsistently at launch/resume, so this re-runs on every signal below.
-  // Home-screen mode is detected two ways (navigator.standalone is iOS's own flag; the media query covers the rest).
-  const standalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
-  const gap = screen.height - innerHeight;
-  const short = standalone && innerWidth < innerHeight && gap > 0 && gap <= 120;
-  const root = document.documentElement;
-  root.classList.toggle("tall-screen", short);
-  root.style.setProperty("--app-h", short ? `${screen.height}px` : "");
-}
-fitScreen();
-for (const t of [50, 300, 1000]) setTimeout(fitScreen, t);
+// unless the document itself is as tall as the screen. fitScreen (defined in index.html's <head> so it runs before the first
+// paint) makes it so; here it only re-checks on events. It never switches the mode off while the gap is 0..120, so the layout
+// can't flip back and forth after launch.
+const fitScreen = window.fitScreen || (() => {});
 for (const ev of ["resize", "pageshow", "focus"]) addEventListener(ev, fitScreen);
 document.addEventListener("visibilitychange", fitScreen);
 addEventListener("orientationchange", () => setTimeout(fitScreen, 300));

@@ -14,6 +14,18 @@
   <link rel="preload" href="fonts/Syncopate-Bold.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="fonts/Syncopate-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Home-screen (standalone) mode on iOS: make the document as tall as the screen. Runs before first paint; see app.js.
+    window.fitScreen = function () {
+      var standalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+      var gap = screen.height - innerHeight;
+      var on = standalone && innerWidth < innerHeight && gap >= 0 && gap <= 120;
+      var root = document.documentElement;
+      root.classList.toggle("tall-screen", on);
+      root.style.setProperty("--app-h", on ? screen.height + "px" : "");
+    };
+    window.fitScreen();
+  </script>
 </head>
 <body>
   <div id="app">
