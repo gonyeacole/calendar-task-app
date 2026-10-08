@@ -189,10 +189,9 @@ function cardHTML() {
   const later = week.filter((ds) => ds > sel).map((ds) => ({ ds, it: itemsOn(ds) }))
     .filter((d) => d.it.events.length + d.it.tasks.length + d.it.payments.length + d.it.birthdays.length)
     .map((d) => `<div class="day-label">${fmtLong(d.ds)}</div>${sortedRows(d.it, d.ds)}`).join("");
-  const dayTitle = sel === today ? "Today" : fmtLong(sel);
   const weekTitle = today >= week[0] && today <= week[6] ? "Later this week" : "Rest of the week";
   // Only show what has something in it; with nothing on the day or later in the week, no card at all.
-  const dayPart = rows ? `<h2 class="b-title">${esc(dayTitle)}</h2><div class="b-list">${rows}</div>` : "";
+  const dayPart = rows ? `<h2 class="b-title">Today</h2><div class="b-list"><div class="day-label">${fmtLong(sel)}</div>${rows}</div>` : "";
   const weekPart = later ? `<h2 class="b-title">${weekTitle}</h2><div class="b-list">${later}</div>` : "";
   return dayPart + (dayPart && weekPart ? `<div class="b-sep"></div>` : "") + weekPart;
 }
