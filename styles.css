@@ -235,3 +235,9 @@ html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h)
   animation: tip-in .22s var(--ease) both;
 }
 @keyframes tip-in { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.92); } }
+
+/* multi-day events: a line under each day instead of a dot */
+.bar { position: absolute; height: 3px; background: var(--event); pointer-events: none; }
+.bar.l0 { bottom: 1px; }
+.bar.l1 { bottom: 4.5px; }
+.day.out .bar { opacity: .45; }

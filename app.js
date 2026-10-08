@@ -183,18 +183,35 @@ function renderCalendar() {
   const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
   const weeks = Math.ceil((first.getDay() + daysInMonth(y, m)) / 7);
   const today = todayIso();
+  // Events longer than a day are drawn as a line under their days (stacked in lanes when they overlap).
+  const lastDay = new Date(start); lastDay.setDate(start.getDate() + weeks * 7 - 1);
+  const [gridFrom, gridTo] = [iso(start), iso(lastDay)];
+  const multi = state.data.events.filter((e) => (e.endDate || e.date) > e.date && e.date <= gridTo && e.endDate >= gridFrom)
+    .sort((a, b) => a.date.localeCompare(b.date) || b.endDate.localeCompare(a.endDate) || a.id.localeCompare(b.id));
+  const laneEnd = [], lane = new Map();
+  for (const e of multi) {
+    let l = laneEnd.findIndex((end) => end < e.date);
+    if (l < 0) l = laneEnd.length;
+    laneEnd[l] = e.endDate; lane.set(e.id, l);
+  }
   let cells = "";
   for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i);
     const ds = iso(d), it = itemsOn(ds);
     const dots = [
-      ...it.events.map(() => "event"),
+      ...it.events.filter((e) => (e.endDate || e.date) === e.date).map(() => "event"),
       ...it.tasks.map(() => "task"),
       ...it.payments.map(() => "payment"),
       ...it.birthdays.map(() => "birthday"),
     ].slice(0, 4).map((k) => `<i class="dot ${k}"></i>`).join("");
+    const dow = d.getDay();
+    const bars = multi.filter((e) => e.date <= ds && ds <= e.endDate && lane.get(e.id) < 2).map((e) => {
+      const capL = ds === e.date || dow === 0, capR = ds === e.endDate || dow === 6;   // rounded ends at the real start/end and at week edges
+      const l = ds === e.date ? 9 : dow === 0 ? 4 : 0, r = ds === e.endDate ? 9 : dow === 6 ? 4 : 0;
+      return `<i class="bar l${lane.get(e.id)}" style="left:${l}px;right:${r}px;border-radius:${capL ? 2 : 0}px ${capR ? 2 : 0}px ${capR ? 2 : 0}px ${capL ? 2 : 0}px"></i>`;
+    }).join("");
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
-      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span><span class="plus" aria-hidden="true">${I.plus}</span></button>`;
+      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${bars}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
   }
   return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
