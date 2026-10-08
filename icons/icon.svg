@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#f4ead8"/>
+  <!-- binding tabs -->
+  <rect x="140" y="96" width="32" height="76" rx="16" fill="#000"/>
+  <rect x="238" y="96" width="32" height="76" rx="16" fill="#000"/>
+  <!-- calendar body -->
+  <rect x="88" y="130" width="336" height="306" rx="52" fill="#000"/>
+  <rect x="88" y="214" width="336" height="14" fill="#f4ead8"/>
+  <!-- days -->
+  <g fill="#f4ead8">
+    <rect x="132" y="266" width="48" height="40" rx="12"/><rect x="232" y="266" width="48" height="40" rx="12"/><rect x="332" y="266" width="48" height="40" rx="12"/>
+    <rect x="132" y="338" width="48" height="40" rx="12"/><rect x="232" y="338" width="48" height="40" rx="12"/>
+  </g>
+  <!-- check badge, top right -->
+  <circle cx="404" cy="128" r="92" fill="#f4ead8"/>
+  <circle cx="404" cy="128" r="76" fill="#c8452c"/>
+  <path d="M368 130l26 26 46-52" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
