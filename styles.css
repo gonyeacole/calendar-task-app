@@ -11,7 +11,7 @@
   --line: rgba(0, 0, 0, .12);
   --event: #c8452c;
   --birthday: #7fae00;
-  --range: rgba(200, 69, 44, .22);
+  --range: color-mix(in srgb, var(--event) 30%, var(--bg));   /* solid, so touching bands never show seams */
   --glass: rgba(255, 255, 255, .62);
   --glass-edge: rgba(0, 0, 0, .08);
   --glass-shine: rgba(255, 255, 255, .95);
@@ -25,12 +25,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --range: rgba(217, 74, 46, .32); --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
+    --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --surface: #171a1d; --text: #ffffff; --muted: #8b9096;
-  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --range: rgba(217, 74, 46, .32); --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
+  --faint: #484d52; --line: rgba(255, 255, 255, .14); --event: #d94a2e; --birthday: #b3f02f; --glass: rgba(60, 62, 66, .5); --glass-edge: rgba(255, 255, 255, .17); --glass-shine: rgba(255, 255, 255, .32); --glass-pill: rgba(255, 255, 255, .17); --dow: #b4b9be; 
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -257,8 +257,9 @@ html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h)
 }
 @keyframes tip-in { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.92); } }
 
-/* multi-day events: a line under each day instead of a dot */
-.bar { position: absolute; height: 3px; background: var(--event); pointer-events: none; }
-.bar.l0 { bottom: 1px; }
-.bar.l1 { bottom: 4.5px; }
-.day.out .bar { opacity: .45; }
+/* multi-day events: a soft band behind the dates, solid circles on the first and last day */
+.span { position: absolute; top: 4.5px; height: 41px; background: var(--range); pointer-events: none; z-index: 0; }
+.day .num { z-index: 1; }
+.day.out .span { opacity: .55; }
+.day.ev-end:not(.sel) .num { color: #fff; }
+.day.ev-end:not(.sel) .num::before { inset: 0; opacity: 1; transform: none; background: var(--event); }

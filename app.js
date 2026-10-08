@@ -183,17 +183,10 @@ function renderCalendar() {
   const first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
   const weeks = Math.ceil((first.getDay() + daysInMonth(y, m)) / 7);
   const today = todayIso();
-  // Events longer than a day are drawn as a line under their days (stacked in lanes when they overlap).
+  // Events longer than a day: a soft band behind their dates, with a solid circle on the first and last day.
   const lastDay = new Date(start); lastDay.setDate(start.getDate() + weeks * 7 - 1);
   const [gridFrom, gridTo] = [iso(start), iso(lastDay)];
-  const multi = state.data.events.filter((e) => (e.endDate || e.date) > e.date && e.date <= gridTo && e.endDate >= gridFrom)
-    .sort((a, b) => a.date.localeCompare(b.date) || b.endDate.localeCompare(a.endDate) || a.id.localeCompare(b.id));
-  const laneEnd = [], lane = new Map();
-  for (const e of multi) {
-    let l = laneEnd.findIndex((end) => end < e.date);
-    if (l < 0) l = laneEnd.length;
-    laneEnd[l] = e.endDate; lane.set(e.id, l);
-  }
+  const multi = state.data.events.filter((e) => (e.endDate || e.date) > e.date && e.date <= gridTo && e.endDate >= gridFrom);
   let cells = "";
   for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i);
@@ -205,14 +198,13 @@ function renderCalendar() {
       ...it.birthdays.map(() => "birthday"),
     ].slice(0, 4).map((k) => `<i class="dot ${k}"></i>`).join("");
     const dow = d.getDay();
-    const bars = multi.filter((e) => e.date <= ds && ds <= e.endDate && lane.get(e.id) < 2).map((e) => {
+    const spans = multi.filter((e) => e.date <= ds && ds <= e.endDate).map((e) => {
       const capL = ds === e.date || dow === 0, capR = ds === e.endDate || dow === 6;   // rounded ends at the real start/end and at week edges
-      // starts/ends at the middle of the date number; at a week edge it stops where the page content stops (15px in)
-      const l = ds === e.date ? "50%" : dow === 0 ? "15px" : "0", r = ds === e.endDate ? "50%" : dow === 6 ? "15px" : "0";
-      return `<i class="bar l${lane.get(e.id)}" style="left:${l};right:${r};border-radius:${capL ? 2 : 0}px ${capR ? 2 : 0}px ${capR ? 2 : 0}px ${capL ? 2 : 0}px"></i>`;
+      return `<i class="span" style="left:${capL ? "4.5px" : "-0.5px"};right:${capR ? "4.5px" : "-0.5px"};border-radius:${capL ? 999 : 0}px ${capR ? 999 : 0}px ${capR ? 999 : 0}px ${capL ? 999 : 0}px"></i>`;
     }).join("");
-    cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
-      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${bars}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
+    const isEnd = multi.some((e) => ds === e.date || ds === e.endDate);
+    cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""} ${isEnd ? "ev-end" : ""}" data-day="${ds}">
+      <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${spans}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
   }
   return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
