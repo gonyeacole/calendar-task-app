@@ -268,9 +268,23 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after {
   transition: background-color .4s ease, color .4s ease, border-color .4s ease, box-shadow .4s ease, fill .4s ease, stroke .4s ease !important;
 }
 
-/* month arrows: tiny, tucked after the year; the tap area is bigger than the arrow */
-.step { display: inline-flex; margin-left: 8px; }
-.step button { position: relative; width: 24px; height: 22px; display: grid; place-items: center; color: var(--muted); border-radius: 50%; transition: opacity .15s ease, transform .15s ease; }
-.step button::before { content: ""; position: absolute; inset: -9px -3px; }
-.step button svg { width: 13px; height: 13px; }
-.step button:active { opacity: .5; transform: scale(.85); }
+/* hold the month name: a ribbon of months to jump with */
+.head > div:first-child { touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; padding-right: 20px; }
+#jump { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+#jump.pinned { pointer-events: auto; }
+.jrib {
+  position: absolute; left: 15px; right: 15px; height: 58px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1.5px 0 var(--glass-shine), 0 14px 34px rgba(0, 0, 0, .45);
+}
+.jmask { position: absolute; inset: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); }
+.jrail { position: absolute; left: 0; top: 0; bottom: 0; width: 0; }
+.ji { position: absolute; top: 0; bottom: 0; width: 56px; display: grid; place-content: center; text-align: center; font: 700 11px var(--display); text-transform: uppercase; color: var(--muted); }
+.ji small { font: 600 9px var(--body); color: var(--event); margin-top: 2px; }
+.jpick { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 52px; margin-left: -26px; border-radius: 999px; background: var(--glass-pill); box-shadow: inset 0 0 0 1px var(--glass-edge); pointer-events: none; }
+.jhint {
+  position: absolute; left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  font-size: 11.5px; font-weight: 600; color: var(--muted); background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+}

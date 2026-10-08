@@ -101,8 +101,6 @@ const itemsOn = (ds) => ({
 
 // ---------- icons ----------
 const I = {
-  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
-  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>',
@@ -117,9 +115,8 @@ const TABS = [
 ];
 
 // ---------- shared pieces ----------
-function header(title, sub, { add = true, arrows = false } = {}) {
-  const step = arrows ? `<span class="step"><button data-act="prev" aria-label="Previous month">${I.prev}</button><button data-act="next" aria-label="Next month">${I.next}</button></span>` : "";
-  return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub"><span>${esc(sub)}</span>${step}</div></div>
+function header(title, sub, { add = true } = {}) {
+  return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub"><span>${esc(sub)}</span></div></div>
     <div class="actions">
       <button class="icon-btn" data-act="theme" aria-label="Switch between light and dark">${currentTheme() === "dark" ? I.moon : I.sun}</button>
       ${add ? `<button class="icon-btn" data-act="add" aria-label="Add">${I.plus}</button>` : ""}
@@ -231,7 +228,7 @@ function renderCalendar() {
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""} ${isEnd ? "ev-end" : ""}" data-day="${ds}">
       <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${spans}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
   }
-  return `${header(MONTHS[m], String(y), { arrows: true })}
+  return `${header(MONTHS[m], String(y), {})}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
     <div class="grid" id="grid">${cells}</div>
     <div id="panel">${panelHTML()}</div>`;
@@ -325,7 +322,7 @@ async function changeMonth(dir, from = 0) {
     state.view = new Date(state.view.getFullYear(), state.view.getMonth() + dir, 1);
     render();
     animate(document.getElementById("grid"), [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 340 });
-    // slide the month name and year only; the arrows stay put so you can keep tapping
+    // slide the month name and year
     document.querySelectorAll(".head h1, .head .sub > span:first-child").forEach((el) =>
       animate(el, [{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 300 }));
   } finally { monthBusy = false; }
@@ -494,8 +491,6 @@ document.addEventListener("click", (e) => {
   if (q("[data-act]")) {
     const a = q("[data-act]").dataset.act;
     if (a === "theme") return toggleTheme(q("[data-act]"));
-    if (a === "prev") return changeMonth(-1);
-    if (a === "next") return changeMonth(1);
     if (a === "add") return openForm(addTypeForTab[state.tab]);
   }
   if (q("[data-toggle]")) {
@@ -611,7 +606,90 @@ document.addEventListener("pointercancel", () => endHold(true));
 document.addEventListener("touchmove", (e) => { if (hold?.active) e.preventDefault(); }, { passive: false });
 document.addEventListener("contextmenu", (e) => { if (e.target.closest?.("#grid")) e.preventDefault(); });
 
+// ---------- jump to a month: hold the month name, slide, tap a month ----------
+// Hold ~half a second on the month name; a ribbon of months opens. Slide to scrub (the calendar follows live).
+// Let go and the ribbon stays open: drag it, then tap a month to land on it. Tapping outside cancels.
+const JUMP = { N: 36, cell: 56, HOLD: 450 };
+let jump = null, jh = null;
+const viewIdx = () => state.view.getFullYear() * 12 + state.view.getMonth();
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+function showMonth(idx) { state.view = new Date(Math.floor(idx / 12), ((idx % 12) + 12) % 12, 1); render(); }
+function jumpPlace(off, smooth) {
+  const w = jump.rail.parentElement.clientWidth;
+  jump.rail.style.transition = smooth ? "transform .26s cubic-bezier(.22,.8,.24,1)" : "none";
+  jump.rail.style.transform = `translateX(${w / 2 - ((JUMP.N + off) * JUMP.cell + JUMP.cell / 2)}px)`;
+}
+function jumpOpen() {
+  const app = document.getElementById("app"), head = document.querySelector(".head").getBoundingClientRect(), top = head.bottom - app.getBoundingClientRect().top + 10;
+  let items = "";
+  for (let k = -JUMP.N; k <= JUMP.N; k++) {
+    const i = jump.base + k, m = ((i % 12) + 12) % 12, y = Math.floor(i / 12);
+    items += `<div class="ji" style="left:${(k + JUMP.N) * JUMP.cell}px"><span>${MONTHS[m].slice(0, 3)}</span>${m === 0 ? `<small>${y}</small>` : ""}</div>`;
+  }
+  const root = document.createElement("div"); root.id = "jump";
+  root.innerHTML = `<div class="jrib" style="top:${top}px"><div class="jmask"><div class="jrail">${items}</div></div><i class="jpick"></i></div>`;
+  app.append(root);
+  jump.root = root; jump.rail = root.querySelector(".jrail"); jump.top = top; jumpPlace(0, false);
+  animate(root.firstElementChild, [{ opacity: 0, transform: "translateY(-6px) scale(.97)" }, { opacity: 1, transform: "none" }], { duration: 240 });
+  root.addEventListener("pointerdown", (e) => {
+    if (!jump?.pinned) return;
+    if (!e.target.closest(".jrib")) return jumpClose(jump.base);                 // outside: cancel
+    root.setPointerCapture(e.pointerId); jump.g = { x: e.clientX, off0: jump.off, moved: false };
+  });
+  root.addEventListener("pointermove", (e) => {
+    const g = jump?.g; if (!g) return;
+    const dx = e.clientX - g.x; if (!g.moved && Math.abs(dx) < 6) return;
+    g.moved = true; jump.off = clampN(g.off0 - dx / JUMP.cell, -JUMP.N + 1, JUMP.N - 1); jumpPlace(jump.off, false);
+    const idx = jump.base + Math.round(jump.off); if (idx !== viewIdx()) showMonth(idx);
+  });
+  root.addEventListener("pointerup", (e) => {
+    const g = jump?.g; if (!g) return; jump.g = null;
+    if (g.moved) { jump.off = Math.round(jump.off); jumpPlace(jump.off, true); return; }       // snap to the nearest month
+    const box = root.querySelector(".jmask").getBoundingClientRect();                         // a tap: land on the month you tapped
+    jump.off = Math.round(jump.off) + Math.round((e.clientX - (box.left + box.width / 2)) / JUMP.cell);
+    jumpPlace(jump.off, true); const idx = jump.base + jump.off; if (idx !== viewIdx()) showMonth(idx);
+    const j = jump; setTimeout(() => { if (jump === j) jumpClose(idx); }, 240);
+  });
+}
+function jumpPin() {
+  jump.pinned = true; jump.root.classList.add("pinned");
+  jump.off = Math.round(jump.off); jumpPlace(jump.off, true);
+  const hint = document.createElement("div"); hint.className = "jhint"; hint.textContent = "Tap a month to go there";
+  hint.style.top = `${jump.top + 58 + 8}px`; jump.root.append(hint);
+  animate(hint, [{ opacity: 0, transform: "translateY(-4px)" }, { opacity: 1, transform: "none" }], { duration: 260 });
+}
+function jumpClose(land) {
+  const j = jump; if (!j) return; jump = null;
+  if (land !== viewIdx()) showMonth(land);
+  animate(j.root, [{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: "forwards" });
+  setTimeout(() => j.root.remove(), reduceMotion ? 0 : 200);
+}
+document.addEventListener("pointerdown", (e) => {
+  if (state.tab !== "calendar" || jump || monthBusy || e.button || !e.target.closest(".head > div:first-child")) return;
+  const h = (jh = { x: e.clientX, y: e.clientY, id: e.pointerId, open: false });
+  h.timer = setTimeout(() => {
+    h.open = true; jump = { base: viewIdx(), off: 0, pinned: false };
+    jumpOpen(); document.getElementById("app").setPointerCapture?.(h.id);
+  }, JUMP.HOLD);
+});
+document.addEventListener("pointermove", (e) => {
+  if (!jh) return;
+  if (!jh.open) { if (Math.hypot(e.clientX - jh.x, e.clientY - jh.y) > 8) { clearTimeout(jh.timer); jh = null; } return; }
+  jump.off = clampN(-(e.clientX - jh.x) / JUMP.cell, -JUMP.N + 1, JUMP.N - 1); jumpPlace(jump.off, false);
+  const idx = jump.base + Math.round(jump.off); if (idx !== viewIdx()) showMonth(idx);
+});
+function endJumpHold() {
+  if (!jh) return; clearTimeout(jh.timer);
+  const was = jh; jh = null; if (!was.open) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 80);
+  jumpPin();
+}
+document.addEventListener("pointerup", endJumpHold);
+document.addEventListener("pointercancel", endJumpHold);
+document.addEventListener("contextmenu", (e) => { if (e.target.closest?.(".head > div:first-child")) e.preventDefault(); });
+
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && jump) return jumpClose(jump.base);
   if (state.tab !== "calendar" || liveScrim() || e.target.matches("input, textarea, select")) return;
   if (e.key === "ArrowLeft") changeMonth(-1);
   if (e.key === "ArrowRight") changeMonth(1);
