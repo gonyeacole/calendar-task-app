@@ -101,6 +101,8 @@ const itemsOn = (ds) => ({
 
 // ---------- icons ----------
 const I = {
+  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>',
@@ -115,8 +117,9 @@ const TABS = [
 ];
 
 // ---------- shared pieces ----------
-function header(title, sub, { add = true } = {}) {
-  return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
+function header(title, sub, { add = true, arrows = false } = {}) {
+  const step = arrows ? `<span class="step"><button data-act="prev" aria-label="Previous month">${I.prev}</button><button data-act="next" aria-label="Next month">${I.next}</button></span>` : "";
+  return `<div class="head"><div><h1>${esc(title)}</h1><div class="sub"><span>${esc(sub)}</span>${step}</div></div>
     <div class="actions">
       <button class="icon-btn" data-act="theme" aria-label="Switch between light and dark">${currentTheme() === "dark" ? I.moon : I.sun}</button>
       ${add ? `<button class="icon-btn" data-act="add" aria-label="Add">${I.plus}</button>` : ""}
@@ -228,7 +231,7 @@ function renderCalendar() {
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""} ${isEnd ? "ev-end" : ""}" data-day="${ds}">
       <span class="num">${d.getDate()}</span><span class="dots">${dots}</span>${spans}<span class="plus" aria-hidden="true">${I.plus}</span></button>`;
   }
-  return `${header(MONTHS[m], String(y), {})}
+  return `${header(MONTHS[m], String(y), { arrows: true })}
     <div class="dow">${DOW.map((d) => `<span>${d}</span>`).join("")}</div>
     <div class="grid" id="grid">${cells}</div>
     <div id="panel">${panelHTML()}</div>`;
@@ -322,8 +325,9 @@ async function changeMonth(dir, from = 0) {
     state.view = new Date(state.view.getFullYear(), state.view.getMonth() + dir, 1);
     render();
     animate(document.getElementById("grid"), [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 340 });
-    const head = document.querySelector(".head > div");
-    animate(head, [{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 300 });
+    // slide the month name and year only; the arrows stay put so you can keep tapping
+    document.querySelectorAll(".head h1, .head .sub > span:first-child").forEach((el) =>
+      animate(el, [{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 300 }));
   } finally { monthBusy = false; }
 }
 
@@ -490,6 +494,8 @@ document.addEventListener("click", (e) => {
   if (q("[data-act]")) {
     const a = q("[data-act]").dataset.act;
     if (a === "theme") return toggleTheme(q("[data-act]"));
+    if (a === "prev") return changeMonth(-1);
+    if (a === "next") return changeMonth(1);
     if (a === "add") return openForm(addTypeForTab[state.tab]);
   }
   if (q("[data-toggle]")) {
