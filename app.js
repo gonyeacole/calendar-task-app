@@ -534,24 +534,22 @@ document.addEventListener("keydown", (e) => {
 
 render();
 
-// iOS home-screen apps report innerHeight = screen height minus the status-bar inset, which leaves a dead strip at the bottom.
-function fitScreen() {
-  const gap = screen.height - innerHeight;
-  const short = matchMedia("(display-mode: standalone)").matches && innerWidth < innerHeight && gap > 0 && gap <= 70;
-  document.documentElement.style.setProperty("--app-h", short ? `${screen.height}px` : "");
-}
-fitScreen();
-addEventListener("resize", fitScreen);
-addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
-
-// TEMPORARY: layout readout on the live site only, to confirm the fix on iPhone home-screen apps.
+// TEMPORARY (live site, home-screen app only): find out which kind of element iOS paints in the bottom strip it leaves unused.
 if (location.hostname.endsWith("vercel.app")) {
-  const dbg = document.createElement("div");
-  dbg.style.cssText = "position:fixed;left:16px;right:16px;bottom:96px;font:11px/1.5 ui-monospace,Menlo,monospace;color:#8b9096;pointer-events:none;z-index:5;white-space:pre-wrap";
-  document.body.append(dbg);
+  const make = (css, text) => { const d = document.createElement("div"); d.style.cssText = css + ";z-index:20;color:#000;font:600 11px/1.2 ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none"; d.textContent = text; document.body.append(d); return d; };
+  const H = innerHeight, S = screen.height, gap = S - H;
+  if (gap > 0 && gap <= 70) {
+    document.documentElement.style.minHeight = `${S}px`;   // document itself taller than the layout viewport (for strip B)
+    make(`position:fixed;left:0;width:33.3%;top:${H}px;height:${gap}px;background:#ff4d4d`, "A fixed top=innerH");
+    make(`position:absolute;left:33.3%;width:33.4%;top:${H}px;height:${gap}px;background:#4da6ff`, "B absolute, taller page");
+    make(`position:fixed;left:66.7%;width:33.3%;bottom:-${gap}px;height:${gap}px;background:#58d68d`, "C fixed bottom:-gap");
+  }
+  const dbg = make("position:fixed;left:16px;right:16px;bottom:96px;background:none;color:#8b9096;justify-content:flex-start;white-space:pre", "");
+  const probe = document.createElement("div"); probe.style.cssText = "position:fixed;height:100vh;width:0;visibility:hidden"; document.body.append(probe);
+  const probe2 = document.createElement("div"); probe2.style.cssText = "position:fixed;height:100lvh;width:0;visibility:hidden"; document.body.append(probe2);
   const tick = () => {
     const r = (s) => Math.round(document.querySelector(s)?.getBoundingClientRect().bottom ?? -1);
-    dbg.textContent = `innerH ${innerHeight}  screenH ${screen.height}  --app-h "${document.documentElement.style.getPropertyValue("--app-h")}"\n#app bottom ${r("#app")}  tabs bottom ${r("#tabs")}`;
+    dbg.textContent = `innerH ${innerHeight}  screenH ${screen.height}  100vh ${probe.offsetHeight}  100lvh ${probe2.offsetHeight}\n#app bottom ${r("#app")}  tabs bottom ${r("#tabs")}  scrollH ${document.documentElement.scrollHeight}`;
   };
-  tick(); setInterval(tick, 1000); addEventListener("resize", tick);
+  tick(); setInterval(tick, 1000);
 }
