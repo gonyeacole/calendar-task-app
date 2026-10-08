@@ -127,9 +127,13 @@ svg { display: block; }
 .total-card span { color: var(--muted); font-size: 13px; }
 
 /* tab bar */
+/* Final position approved by Cole on 2026-10-08. Do not change unless asked.
+   Distance from the screen's bottom edge to the bar's bottom edge: the home-indicator inset minus 10px, so it is
+   24px on every Face ID iPhone (inset 34px), and never less than 8px on iPhones with no inset (SE). #tabs reads only this. */
+:root { --tab-bar-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 10px)); }
 /* Liquid Glass tab bar: a floating, frosted capsule with a pill that glides to the selected tab */
 #tabs {
-  position: absolute; left: 14px; right: 14px; bottom: max(2px, calc(env(safe-area-inset-bottom, 0px) - 10px)); z-index: 6;
+  position: absolute; left: 14px; right: 14px; bottom: var(--tab-bar-bottom); z-index: 6;
   display: flex; padding: 5px; border-radius: 999px; isolation: isolate;
   background: linear-gradient(180deg, var(--glass), color-mix(in srgb, var(--glass) 55%, transparent));
   -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
