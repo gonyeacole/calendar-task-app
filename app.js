@@ -290,17 +290,24 @@ function renderEvents() {
   const today = todayIso();
   const evs = [...state.data.events].sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
   const upcoming = evs.filter((e) => e.date >= today), past = evs.filter((e) => e.date < today).reverse();
-  const group = (list) => {
-    let last = "", out = "";
-    for (const e of list) {
-      if (e.date !== last) { out += `${last ? "</div>" : ""}<div class="group-label">${e.date === today ? "Today" : fmtLong(e.date)}</div><div class="list">`; last = e.date; }
-      out += row("event", e);
-    }
-    return out + (last ? "</div>" : "");
-  };
+  const [next, ...rest] = upcoming;
+  const away = (e) => daysBetween(today, e.date);
+  const where = (e) => (e.location ? " · " + esc(e.location) : "");
+  const hero = next ? (() => {
+    const n = away(next), end = next.endDate || next.date;
+    const when = end !== next.date ? `${fmtLong(next.date)} – ${fmtLong(end)}` : eventWhen(next, next.date, false);
+    return `<button class="ev-hero" data-edit="event:${next.id}"><span class="cap">Up next · ${n === 0 ? "Today" : fmtLong(next.date)}</span>
+      <h2>${esc(next.title)}</h2><p>${when}${where(next)}</p><span class="pill">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`}</span></button>`;
+  })() : "";
+  const restRows = rest.map((e) => `<button class="row" data-edit="event:${e.id}"><span class="marker"></span>
+      <span class="body"><div class="title"><span class="t">${esc(e.title)}</span></div><div class="meta">${eventWhen(e, e.date, true)}${where(e)}</div></span>
+      <span class="when">${away(e) === 1 ? "Tomorrow" : away(e) + " days"}</span></button>`).join("");
+  const pastRows = past.map((e) => row("event", e, { showDate: true })).join("");
   return `${header("Events", `${upcoming.length} upcoming`)}
     ${evs.length ? "" : `<div class="empty">No events yet. Tap + to add one.</div>`}
-    ${group(upcoming)}${past.length ? `<div class="group-label" style="margin-top:34px">Past</div>${group(past)}` : ""}`;
+    ${hero}
+    ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${restRows}</div>` : ""}
+    ${past.length ? `<div class="group-label" style="margin-top:34px">Past</div><div class="list">${pastRows}</div>` : ""}`;
 }
 
 function renderBirthdays() {
