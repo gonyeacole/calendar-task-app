@@ -147,7 +147,7 @@ function eventWhen(e, ds, showDate) {
   return "All day";
 }
 
-function row(kind, item, { showDate = false, ds = "" } = {}) {
+function row(kind, item, { showDate = false, ds = "", compact = false } = {}) {
   if (kind === "task") {
     return `<button class="row ${item.done ? "done" : ""}" data-edit="task:${item.id}">
       <span class="marker task ${item.done ? "done" : ""}" data-toggle="${item.id}"></span>
@@ -162,8 +162,8 @@ function row(kind, item, { showDate = false, ds = "" } = {}) {
   }
   if (kind === "payment") {
     return `<button class="row" data-edit="payment:${item.id}"><span class="marker payment"></span>
-      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${showDate ? "Next " + fmtLong(nextDue(item)) + " · " + FREQS[item.freq] : money(item.amount) + " · " + FREQS[item.freq]}</div></span>
-      ${showDate ? `<span class="amount">${money(item.amount)}</span>` : ""}</button>`;
+      <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${compact ? FREQS[item.freq] : showDate ? "Next " + fmtLong(nextDue(item)) + " · " + FREQS[item.freq] : money(item.amount) + " · " + FREQS[item.freq]}</div></span>
+      ${showDate || compact ? `<span class="amount">${money(item.amount)}</span>` : ""}</button>`;
   }
   return `<button class="row" data-edit="event:${item.id}"><span class="marker"></span>
     <span class="body"><div class="title"><span class="t">${esc(item.title)}</span></div><div class="meta">${eventMeta(item, ds, showDate)}</div></span></button>`;
@@ -245,10 +245,16 @@ function renderTodo() {
 function renderPayments() {
   const ps = [...state.data.payments].sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
   const total = ps.reduce((s, p) => s + monthlyCost(p), 0);
+  // the next few charges as cards, the nearest one highlighted
+  const tiles = ps.slice(0, 4).map((p, i) => {
+    const due = nextDue(p), n = daysBetween(todayIso(), due);
+    return `<button class="pay-tile ${i === 0 ? "hot" : ""}" data-edit="payment:${p.id}"><span class="cap">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : fmtLong(due)}</span><b>${esc(p.title)}</b><span class="amount">${money(p.amount)}</span></button>`;
+  }).join("");
   return `${header("Payments", "Recurring")}
     <div class="total-card"><span>Per month</span><b>${money(total)}</b></div>
-    ${ps.length ? "" : `<div class="empty">No recurring payments yet. Tap + to add one.</div>`}
-    <div class="list">${ps.map((p) => row("payment", p, { showDate: true })).join("")}</div>`;
+    ${ps.length ? `<div class="group-label">Due soon</div><div class="pay-strip">${tiles}</div>
+      <div class="group-label">All payments</div><div class="pay-card">${ps.map((p) => row("payment", p, { compact: true })).join("")}</div>`
+      : `<div class="empty">No recurring payments yet. Tap + to add one.</div>`}`;
 }
 
 function renderEvents() {

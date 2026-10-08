@@ -126,6 +126,16 @@ svg { display: block; }
 .total-card { margin-top: 22px; background: var(--surface); border-radius: 16px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: baseline; }
 .total-card b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .total-card span { color: var(--muted); font-size: 13px; }
+.pay-strip { display: flex; gap: 10px; margin: 10px -15px 0; padding: 0 15px; overflow-x: auto; scrollbar-width: none; }
+.pay-strip::-webkit-scrollbar { display: none; }
+.pay-tile { flex: none; width: 128px; text-align: left; background: var(--surface); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; transition: opacity .15s ease, transform .15s ease; }
+.pay-tile:active { opacity: .7; transform: scale(.97); }
+.pay-tile .cap { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+.pay-tile b { margin-top: 12px; font-size: 16px; line-height: 20px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-tile .amount { margin-top: 2px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; line-height: 18px; }
+.pay-tile.hot { background: var(--event); color: #fff; }
+.pay-tile.hot .cap { color: rgba(255, 255, 255, .82); }
+.pay-card { margin-top: 10px; background: var(--surface); border-radius: 20px; padding: 6px 18px; }
 
 /* tab bar */
 /* Final position approved by Cole on 2026-10-08. Do not change unless asked.
