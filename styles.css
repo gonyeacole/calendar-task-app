@@ -129,7 +129,7 @@ svg { display: block; }
 /* tab bar */
 /* Liquid Glass tab bar: a floating, frosted capsule with a pill that glides to the selected tab */
 #tabs {
-  position: absolute; left: 14px; right: 14px; bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 22px)); z-index: 6;
+  position: absolute; left: 14px; right: 14px; bottom: max(4px, calc(env(safe-area-inset-bottom, 0px) - 28px)); z-index: 6;
   display: flex; padding: 5px; border-radius: 999px; isolation: isolate;
   background: linear-gradient(180deg, var(--glass), color-mix(in srgb, var(--glass) 55%, transparent));
   -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
