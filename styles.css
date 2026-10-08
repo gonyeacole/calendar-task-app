@@ -145,6 +145,10 @@ svg { display: block; }
 .ev-hero h2 { margin: 12px 0 2px; font-size: 26px; line-height: 30px; font-weight: 400; letter-spacing: -.4px; overflow-wrap: anywhere; }
 .ev-hero p { margin: 0; font-size: 14px; line-height: 18px; color: rgba(255, 255, 255, .9); }
 .ev-hero .pill { display: inline-block; margin-top: 14px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .22); font-size: 12px; font-weight: 600; }
+.ev-hero.bday { background: var(--birthday); color: #000; }
+.ev-hero.bday .cap { color: rgba(0, 0, 0, .62); }
+.ev-hero.bday p { color: rgba(0, 0, 0, .8); }
+.ev-hero.bday .pill { background: rgba(0, 0, 0, .13); }
 .row .when { flex: none; align-self: center; font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
 .pay-card { margin-top: 10px; background: var(--surface); border-radius: 20px; padding: 6px 18px; }
 

@@ -313,9 +313,20 @@ function renderEvents() {
 function renderBirthdays() {
   const list = state.data.birthdays.map((b) => ({ b, next: nextBirthday(b) })).sort((a, c) => a.next.localeCompare(c.next));
   const sub = list.length ? `Next: ${list[0].b.title} · ${countdown(list[0].next)}` : "None yet";
+  const [first, ...rest] = list;
+  const day = (ds) => parse(ds).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const hero = first ? (() => {
+    const n = daysBetween(todayIso(), first.next), turns = turnsOn(first.b, first.next);
+    return `<button class="ev-hero bday" data-edit="birthday:${first.b.id}"><span class="cap">Next birthday · ${n === 0 ? "Today" : day(first.next)}</span>
+      <h2>${esc(first.b.title)}</h2><p>${turns || "Birthday"}</p><span class="pill">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`}</span></button>`;
+  })() : "";
+  const rows = rest.map(({ b, next }) => `<button class="row" data-edit="birthday:${b.id}"><span class="marker birthday"></span>
+      <span class="body"><div class="title"><span class="t">${esc(b.title)}</span></div><div class="meta">${[day(next), turnsOn(b, next)].filter(Boolean).join(" · ")}</div></span>
+      <span class="when">${countdown(next)}</span></button>`).join("");
   return `${header("Birthdays", sub)}
     ${list.length ? "" : `<div class="empty">No birthdays yet. Tap + to add one.</div>`}
-    <div class="list">${list.map(({ b, next }) => row("birthday", b, { showDate: true, ds: next })).join("")}</div>`;
+    ${hero}
+    ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${rows}</div>` : ""}`;
 }
 
 const VIEWS = { birthdays: renderBirthdays, calendar: renderCalendar, todo: renderTodo, payments: renderPayments, events: renderEvents };
