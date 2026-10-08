@@ -534,22 +534,17 @@ document.addEventListener("keydown", (e) => {
 
 render();
 
-// TEMPORARY (live site, home-screen app only): find out which kind of element iOS paints in the bottom strip it leaves unused.
-if (location.hostname.endsWith("vercel.app")) {
-  const make = (css, text) => { const d = document.createElement("div"); d.style.cssText = css + ";z-index:20;color:#000;font:600 11px/1.2 ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none"; d.textContent = text; document.body.append(d); return d; };
-  const H = innerHeight, S = screen.height, gap = S - H;
-  if (gap > 0 && gap <= 70) {
-    document.documentElement.style.minHeight = `${S}px`;   // document itself taller than the layout viewport (for strip B)
-    make(`position:fixed;left:0;width:33.3%;top:${H}px;height:${gap}px;background:#ff4d4d`, "A fixed top=innerH");
-    make(`position:absolute;left:33.3%;width:33.4%;top:${H}px;height:${gap}px;background:#4da6ff`, "B absolute, taller page");
-    make(`position:fixed;left:66.7%;width:33.3%;bottom:-${gap}px;height:${gap}px;background:#58d68d`, "C fixed bottom:-gap");
-  }
-  const dbg = make("position:fixed;left:16px;right:16px;bottom:96px;background:none;color:#8b9096;justify-content:flex-start;white-space:pre", "");
-  const probe = document.createElement("div"); probe.style.cssText = "position:fixed;height:100vh;width:0;visibility:hidden"; document.body.append(probe);
-  const probe2 = document.createElement("div"); probe2.style.cssText = "position:fixed;height:100lvh;width:0;visibility:hidden"; document.body.append(probe2);
-  const tick = () => {
-    const r = (s) => Math.round(document.querySelector(s)?.getBoundingClientRect().bottom ?? -1);
-    dbg.textContent = `innerH ${innerHeight}  screenH ${screen.height}  100vh ${probe.offsetHeight}  100lvh ${probe2.offsetHeight}\n#app bottom ${r("#app")}  tabs bottom ${r("#tabs")}  scrollH ${document.documentElement.scrollHeight}`;
-  };
-  tick(); setInterval(tick, 1000);
+// iOS home-screen apps report a page height shorter than the screen (by the status-bar inset) and leave the strip below blank,
+// unless the document itself is as tall as the screen. Make it so, and keep everything pinned to the real screen edges.
+function fitScreen() {
+  const gap = screen.height - innerHeight;
+  const short = matchMedia("(display-mode: standalone)").matches && innerWidth < innerHeight && gap > 0 && gap <= 70;
+  const root = document.documentElement;
+  root.classList.toggle("tall-screen", short);
+  root.style.setProperty("--app-h", short ? `${screen.height}px` : "");
 }
+fitScreen();
+addEventListener("resize", fitScreen);
+addEventListener("orientationchange", () => setTimeout(fitScreen, 300));
+// the document is taller than the viewport in that mode; never let it scroll away from the top
+addEventListener("scroll", () => { if (scrollY && document.documentElement.classList.contains("tall-screen")) scrollTo(0, 0); }, { passive: true });

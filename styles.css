@@ -200,3 +200,8 @@ svg { display: block; }
 
 .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: 1; }
 .field textarea { min-height: 104px; resize: none; line-height: 1.35; }
+
+/* iOS home-screen app: page is shorter than the screen, so size the document to the screen (see fitScreen in app.js) */
+html.tall-screen { min-height: var(--app-h); overflow: hidden; overscroll-behavior: none; }
+html.tall-screen body { overflow: hidden; }
+html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h); }
