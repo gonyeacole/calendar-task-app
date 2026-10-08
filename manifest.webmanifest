@@ -1,6 +1,6 @@
 {
-  "name": "C(K)alendar",
-  "short_name": "C(K)al",
+  "name": "(k)cal",
+  "short_name": "(k)cal",
   "display": "standalone",
   "background_color": "#f4ead8",
   "theme_color": "#000000",
