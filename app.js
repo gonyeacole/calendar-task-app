@@ -192,7 +192,7 @@ function renderCalendar() {
       ...it.tasks.map(() => "task"),
       ...it.payments.map(() => "payment"),
       ...it.birthdays.map(() => "birthday"),
-    ].slice(0, 3).map((k) => `<i class="dot ${k}"></i>`).join("");
+    ].slice(0, 4).map((k) => `<i class="dot ${k}"></i>`).join("");
     cells += `<button class="day ${d.getMonth() !== m ? "out" : ""} ${ds === today ? "today" : ""} ${ds === state.selected ? "sel" : ""}" data-day="${ds}">
       <span class="num">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
   }
