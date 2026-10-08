@@ -272,17 +272,29 @@ function renderTodo() {
 }
 
 function renderPayments() {
-  const ps = [...state.data.payments].sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
+  const ps = state.data.payments;
   const total = ps.reduce((s, p) => s + monthlyCost(p), 0);
-  // the next few charges as cards, the nearest one highlighted
-  const tiles = ps.slice(0, 4).map((p, i) => {
-    const due = nextDue(p), n = daysBetween(todayIso(), due);
-    return `<button class="pay-tile ${i === 0 ? "hot" : ""}" data-edit="payment:${p.id}"><span class="cap">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : fmtLong(due)}</span><b>${esc(p.title)}</b><span class="amount">${money(p.amount)}</span></button>`;
+  const today = todayIso(), t0 = parse(today);
+  const dayAt = (i) => { const d = new Date(t0); d.setDate(t0.getDate() + i); return iso(d); };
+  // the next seven days, with a dot where money goes out
+  const strip = Array.from({ length: 7 }, (_, i) => {
+    const ds = dayAt(i), any = ps.some((p) => paymentOn(p, ds));
+    return `<div class="${i === 0 ? "on" : ""}"><span class="cap">${parse(ds).toLocaleDateString(undefined, { weekday: "short" })}</span><b>${parse(ds).getDate()}</b><i class="${any ? "" : "none"}"></i></div>`;
   }).join("");
+  // every charge in the next 30 days, in date order
+  const due = [];
+  for (let i = 0; i < 30; i++) { const ds = dayAt(i); ps.forEach((p) => { if (paymentOn(p, ds)) due.push({ p, ds }); }); }
+  const dueRows = due.map(({ p, ds }) => `<button class="row pay-row" data-edit="payment:${p.id}">
+      <span class="pay-dt"><b>${parse(ds).getDate()}</b><span>${parse(ds).toLocaleDateString(undefined, { weekday: "short" })}</span></span>
+      <span class="body"><div class="title"><span class="t">${esc(p.title)}</span></div><div class="meta">${FREQS[p.freq]}</div></span>
+      <span class="amount">${money(p.amount)}</span></button>`).join("");
+  const later = ps.filter((p) => !due.some((d) => d.p === p)).sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
   return `${header("Payments", "")}
     <div class="total-card"><span>Per month</span><b>${money(total)}</b></div>
-    ${ps.length ? `<div class="group-label">Due soon</div><div class="pay-strip">${tiles}</div>
-      <div class="group-label">All payments</div><div class="pay-card">${ps.map((p) => row("payment", p, { compact: true })).join("")}</div>`
+    ${ps.length ? `<div class="pay-card pay-week"><div class="pay-strip7">${strip}</div></div>
+      <div class="group-label">Next 30 days</div>
+      ${dueRows ? `<div class="pay-card">${dueRows}</div>` : `<div class="empty" style="padding:24px 0">Nothing due in the next 30 days.</div>`}
+      ${later.length ? `<div class="group-label">Later</div><div class="pay-card">${later.map((p) => row("payment", p, { showDate: true })).join("")}</div>` : ""}`
       : `<div class="empty">No recurring payments yet. Tap + to add one.</div>`}`;
 }
 
