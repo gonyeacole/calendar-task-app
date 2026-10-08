@@ -533,3 +533,22 @@ document.addEventListener("keydown", (e) => {
 });
 
 render();
+
+// TEMPORARY: layout readout on the live site only, to find why the tab bar sits high on iPhone home-screen apps.
+if (location.hostname.endsWith("vercel.app")) {
+  const dbg = document.createElement("div");
+  dbg.style.cssText = "position:fixed;left:16px;right:16px;top:58%;font:11px/1.5 ui-monospace,Menlo,monospace;color:#8b9096;pointer-events:none;z-index:5;white-space:pre-wrap";
+  document.body.append(dbg);
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px)";
+  document.body.append(probe);
+  const tick = () => {
+    const r = (s) => Math.round(document.querySelector(s)?.getBoundingClientRect().bottom ?? -1);
+    const cs = getComputedStyle(probe);
+    dbg.textContent = `innerH ${innerHeight}  visualH ${Math.round(visualViewport?.height ?? -1)}  screenH ${screen.height}\n` +
+      `safe top ${cs.paddingTop}  bottom ${cs.paddingBottom}\n` +
+      `#app bottom ${r("#app")}  tabs bottom ${r("#tabs")}  html H ${document.documentElement.clientHeight}\n` +
+      `standalone ${navigator.standalone}  display-mode ${matchMedia("(display-mode: standalone)").matches}`;
+  };
+  tick(); setInterval(tick, 1000); addEventListener("resize", tick);
+}

@@ -200,3 +200,8 @@ svg { display: block; }
 
 .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: 1; }
 .field textarea { min-height: 104px; resize: none; line-height: 1.35; }
+
+/* Home-screen app on iOS: pin the app to the physical screen edges so the tab bar reaches the bottom */
+@media (display-mode: standalone) {
+  #app { position: fixed; inset: 0; margin: 0 auto; width: 100%; height: auto; }
+}
