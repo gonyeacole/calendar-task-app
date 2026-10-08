@@ -267,10 +267,9 @@ html.tall-screen .scrim { position: absolute; bottom: auto; height: var(--app-h)
 .day.ev-end:not(.sel) .num { color: #fff; }
 .day.ev-end:not(.sel) .num::before { inset: 0; opacity: 1; transform: none; background: var(--event); }
 
-/* light / dark switch: fade every color together for a moment */
-html.theming, html.theming *, html.theming *::before, html.theming *::after {
-  transition: background-color .4s ease, color .4s ease, border-color .4s ease, box-shadow .4s ease, fill .4s ease, stroke .4s ease !important;
-}
+/* light / dark switch: change every color in the same frame. (A fade made text lag: color is inherited, so each nested element
+   started its own transition from its parent's half-faded value.) */
+html.theming, html.theming *, html.theming *::before, html.theming *::after { transition: none !important; }
 
 /* hold the month name: a ribbon of months to jump with */
 .head > div:first-child { touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; padding-right: 20px; }
