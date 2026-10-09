@@ -260,6 +260,11 @@ function renderCalendar() {
     <div id="panel">${panelHTML()}</div>`;
 }
 
+// Empty tabs: faint placeholder rows showing what the list will look like, plus a short message
+const emptyHTML = (title, text) => `<div class="ghost-card" aria-hidden="true">${
+  [[70, 36], [54, 28], [62, 32]].map(([a, b]) => `<div class="ghost"><i></i><div><u style="width:${a}%"></u><u class="s" style="width:${b}%"></u></div></div>`).join("")}</div>
+  <div class="empty-msg"><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`;
+
 function renderTodo() {
   const open = state.data.tasks.filter((t) => !t.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9") || (a.time || "").localeCompare(b.time || ""));
   const done = state.data.tasks.filter((t) => t.done);
@@ -275,7 +280,7 @@ function renderTodo() {
     ["Completed", done, ""],
   ].filter(([, list]) => list.length);
   return `${header("To Do", `${open.length} open${overdue.length ? `, ${overdue.length} overdue` : ""}`)}
-    ${open.length || done.length ? "" : `<div class="empty">No tasks yet. Tap + to add one.</div>`}
+    ${open.length || done.length ? "" : emptyHTML("Nothing yet", "Your tasks will show up here. Tap + to add the first one.")}
     ${groups.map(([label, list, cls]) => `<div class="group-label ${cls}">${label}</div><div class="pay-card">${list.map((t) => row("task", t, { showDate: label !== "Today" })).join("")}</div>`).join("")}`;
 }
 
@@ -303,7 +308,7 @@ function renderPayments() {
       <div class="group-label">Next 30 days</div>
       ${dueRows ? `<div class="pay-card">${dueRows}</div>` : `<div class="empty" style="padding:24px 0">Nothing due in the next 30 days.</div>`}
       ${later.length ? `<div class="group-label">Later</div><div class="pay-card">${later.map((p) => row("payment", p, { showDate: true })).join("")}</div>` : ""}`
-      : `<div class="empty">No recurring payments yet. Tap + to add one.</div>`}`;
+      : emptyHTML("No payments yet", "Recurring payments will show up here. Tap + to add the first one.")}`;
 }
 
 function renderEvents() {
@@ -324,7 +329,7 @@ function renderEvents() {
       <span class="when">${away(e) === 1 ? "Tomorrow" : away(e) + " days"}</span></button>`).join("");
   const pastRows = past.map((e) => row("event", e, { showDate: true })).join("");
   return `${header("Events", `${upcoming.length} upcoming`)}
-    ${evs.length ? "" : `<div class="empty">No events yet. Tap + to add one.</div>`}
+    ${evs.length ? "" : emptyHTML("No events yet", "Your events will show up here. Tap + to add the first one.")}
     ${hero}
     ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${restRows}</div>` : ""}
     ${past.length ? `<div class="group-label" style="margin-top:34px">Past</div><div class="list">${pastRows}</div>` : ""}`;
@@ -343,7 +348,7 @@ function renderBirthdays() {
       <span class="body"><div class="title"><span class="t">${esc(b.title)}</span></div><div class="meta">${[day(next), turnsOn(b, next)].filter(Boolean).join(" · ")}</div></span>
       <span class="when">${countdown(next)}</span></button>`).join("");
   return `${header("Birthdays", "")}
-    ${list.length ? "" : `<div class="empty">No birthdays yet. Tap + to add one.</div>`}
+    ${list.length ? "" : emptyHTML("No birthdays yet", "Birthdays will show up here. Tap + to add the first one.")}
     ${hero}
     ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${rows}</div>` : ""}`;
 }
