@@ -279,7 +279,7 @@ function renderTodo() {
     ["No date", open.filter((t) => !t.due), ""],
     ["Completed", done, ""],
   ].filter(([, list]) => list.length);
-  return `${header("To Do", `${open.length} open${overdue.length ? `, ${overdue.length} overdue` : ""}`)}
+  return `${header("To Do", "")}
     ${open.length || done.length ? "" : emptyHTML("Nothing yet", "Your tasks will show up here. Tap + to add the first one.")}
     ${groups.map(([label, list, cls]) => `<div class="group-label ${cls}">${label}</div><div class="pay-card">${list.map((t) => row("task", t, { showDate: label !== "Today" })).join("")}</div>`).join("")}`;
 }
@@ -328,7 +328,7 @@ function renderEvents() {
       <span class="body"><div class="title"><span class="t">${esc(e.title)}</span></div><div class="meta">${eventWhen(e, e.date, true)}${where(e)}</div></span>
       <span class="when">${away(e) === 1 ? "Tomorrow" : away(e) + " days"}</span></button>`).join("");
   const pastRows = past.map((e) => row("event", e, { showDate: true })).join("");
-  return `${header("Events", `${upcoming.length} upcoming`)}
+  return `${header("Events", "")}
     ${evs.length ? "" : emptyHTML("No events yet", "Your events will show up here. Tap + to add the first one.")}
     ${hero}
     ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${restRows}</div>` : ""}
