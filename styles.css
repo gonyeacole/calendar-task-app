@@ -352,3 +352,16 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after { tr
 
 .b-sep { height: 1px; background: var(--line); margin: 14px 0 16px; }
 .bubble .b-list:last-child { margin-bottom: 4px; }
+
+/* code screen for the shared calendar */
+#lock { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: grid; place-items: center; padding: 24px; }
+#lock[hidden] { display: none; }
+#lock form { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px; text-align: center; }
+#lock h1 { margin: 0; font-family: var(--display); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: .2px; }
+#lock p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 19px; }
+#lock input { font: inherit; font-size: 17px; text-align: center; color: var(--text); background: var(--surface); border: 0; border-radius: 16px; padding: 15px 16px; outline: none; }
+#lock input:focus-visible { box-shadow: 0 0 0 2px var(--event); }
+#lock button { font: inherit; font-weight: 600; color: #fff; background: var(--event); border-radius: 16px; padding: 14px; }
+#lock button:disabled { opacity: .6; }
+#lock .lock-err { min-height: 18px; font-size: 13px; color: var(--event); }
+html.locked #app { visibility: hidden; }

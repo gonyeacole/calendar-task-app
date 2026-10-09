@@ -110,10 +110,13 @@ const state = {
   data: load(),
 };
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return { birthdays: [], ...d }; } catch {}
-  return { events: [], tasks: [], payments: [], birthdays: [] };
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return { birthdays: [], ...d, _del: d._del || {} }; } catch {}
+  return { events: [], tasks: [], payments: [], birthdays: [], _del: {} };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state.data)); } catch {} }
+// `rev` counts local changes, so a sync that was already on its way can tell something changed under it
+let rev = 0;
+const persistLocal = () => { try { localStorage.setItem(KEY, JSON.stringify(state.data)); } catch {} };
+function save() { persistLocal(); rev++; scheduleSync(); }
 
 const itemsOn = (ds) => ({
   events: state.data.events.filter((e) => e.date <= ds && ds <= (e.endDate || e.date)).sort((a, b) => (a.date === ds ? a.time || "" : "").localeCompare(b.date === ds ? b.time || "" : "")),
@@ -515,12 +518,12 @@ function openForm(type, item, preset) {
         draft.title = sheet.querySelector("input[name=title]").value; draw(b.dataset.type); type = b.dataset.type;
       }));
       sheet.querySelector("[data-delete]")?.addEventListener("click", () => {
-        state.data[collection[t]] = state.data[collection[t]].filter((x) => x.id !== item.id); save(); closeSheet(); render();
+        state.data[collection[t]] = state.data[collection[t]].filter((x) => x.id !== item.id); state.data._del[item.id] = Date.now(); save(); closeSheet(); render();
       });
       sheet.querySelector("#f").addEventListener("submit", (e) => {
         e.preventDefault();
         const fd = Object.fromEntries(new FormData(e.target));
-        const next = { ...(item || { id: uid() }), ...fd };
+        const next = { ...(item || { id: uid() }), ...fd, u: Date.now() };
         if (t === "payment") next.amount = parseFloat(fd.amount);
         if (t === "birthday") next.noYear = fd.noYear === "on";
         if (t === "event") {
@@ -568,7 +571,7 @@ document.addEventListener("click", (e) => {
   if (q("[data-toggle]")) {
     const task = state.data.tasks.find((x) => x.id === q("[data-toggle]").dataset.toggle);
     if (task) {
-      task.done = !task.done; save();
+      task.done = !task.done; task.u = Date.now(); save();
       // flip the checkmark and strike-through in place so they animate, then re-sort the To Do list
       document.querySelectorAll(`[data-toggle="${task.id}"]`).forEach((m) => { m.classList.toggle("done", task.done); m.closest(".row").classList.toggle("done", task.done); });
       if (state.tab === "todo") { clearTimeout(reflow); reflow = setTimeout(() => render(), 450); }
@@ -766,6 +769,85 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowLeft") changeMonth(-1);
   if (e.key === "ArrowRight") changeMonth(1);
 });
+
+// ---------- shared calendar ----------
+// When the page is served with the calendar-sync meta tag, everything is kept in sync with a private copy online, protected by a
+// household code. The code is typed once per phone and remembered. Offline, the app keeps working from this phone's copy and
+// catches up on the next sync.
+const SYNC_ON = !!document.querySelector('meta[name="calendar-sync"]');
+const CODE_KEY = "calendar-task-app:code";
+let syncing = false, syncAgain = false, syncTimer = 0;
+
+function scheduleSync(ms = 700) { if (!SYNC_ON) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, ms); }
+
+function showLock(msg = "") {
+  let el = document.getElementById("lock");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "lock";
+    el.innerHTML = `<form><h1>(k)cal</h1><p>Enter your code to open the calendar.</p>
+      <input id="lock-code" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Code" aria-label="Code">
+      <button type="submit">Open</button><div class="lock-err" role="alert"></div></form>`;
+    document.body.appendChild(el);
+    el.querySelector("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = el.querySelector("input"), btn = el.querySelector("button"), code = input.value.trim();
+      if (!code) return;
+      try { localStorage.setItem(CODE_KEY, code); } catch {}
+      btn.disabled = true; btn.textContent = "Checking…";
+      const r = await syncNow();
+      btn.disabled = false; btn.textContent = "Open";
+      if (r === "offline") el.querySelector(".lock-err").textContent = "Can't reach the server. Check your connection and try again.";
+      if (r === "ok") input.value = "";
+    });
+  }
+  el.querySelector(".lock-err").textContent = msg;
+  el.hidden = false;
+  document.documentElement.classList.add("locked");
+}
+function hideLock() { const el = document.getElementById("lock"); if (el) el.hidden = true; document.documentElement.classList.remove("locked"); }
+
+async function syncNow() {
+  if (!SYNC_ON) return "off";
+  let code = ""; try { code = localStorage.getItem(CODE_KEY) || ""; } catch {}
+  if (!code) { showLock(); return "locked"; }
+  if (syncing) { syncAgain = true; return "busy"; }
+  syncing = true;
+  const sent = rev;
+  let result = "offline";
+  try {
+    const res = await fetch("/api/sync", { method: "POST", cache: "no-store", headers: { "content-type": "application/json", "x-app-code": code }, body: JSON.stringify({ data: state.data }) });
+    if (res.status === 401) {
+      try { localStorage.removeItem(CODE_KEY); } catch {}
+      showLock("That code didn't work.");
+      result = "wrong";
+    } else if (res.ok) {
+      const { data } = await res.json();
+      const { mergeDocs } = await import("./merge.js");
+      // merge with what is on this phone now, so anything typed while the request was out is kept
+      const merged = mergeDocs(state.data, data);
+      if (JSON.stringify(merged) !== JSON.stringify(state.data)) {
+        state.data = merged; persistLocal();
+        if (!document.querySelector(".sheet")) render();
+      }
+      if (rev !== sent) syncAgain = true;
+      hideLock();
+      result = "ok";
+    }
+  } catch { /* offline: try again later */ }
+  syncing = false;
+  if (syncAgain) { syncAgain = false; scheduleSync(300); }
+  return result;
+}
+
+if (SYNC_ON) {
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleSync(100); });
+  addEventListener("focus", () => scheduleSync(100));
+  addEventListener("online", () => scheduleSync(100));
+  setInterval(() => { if (!document.hidden) syncNow(); }, 15000);
+  let hasCode = false; try { hasCode = !!localStorage.getItem(CODE_KEY); } catch {}
+  if (hasCode) scheduleSync(50); else showLock();
+}
 
 render();
 
