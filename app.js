@@ -350,13 +350,24 @@ function renderBirthdays() {
     return `<button class="ev-hero" data-edit="birthday:${first.b.id}"><span class="cap">Next birthday · ${n === 0 ? "Today" : day(first.next)}</span>
       <h2>${esc(first.b.title)}</h2><p>${turns || "Birthday"}</p><span class="pill">${n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`}</span></button>`;
   })() : "";
-  const rows = rest.map(({ b, next }) => `<button class="row" data-edit="birthday:${b.id}"><span class="marker birthday"></span>
-      <span class="body"><div class="title"><span class="t">${esc(b.title)}</span></div><div class="meta">${[day(next), turnsOn(b, next)].filter(Boolean).join(" · ")}</div></span>
-      <span class="when">${countdown(next)}</span></button>`).join("");
+  // the rest, grouped by month (the year is added for months that fall in a later year)
+  const thisYear = todayIso().slice(0, 4);
+  const months = [];
+  for (const it of rest) {
+    const key = it.next.slice(0, 7);
+    if (!months.length || months[months.length - 1].key !== key) months.push({ key, items: [] });
+    months[months.length - 1].items.push(it);
+  }
+  const monthName = (key) => { const d = parse(key + "-01"); return d.toLocaleDateString(undefined, { month: "long" }) + (key.slice(0, 4) !== thisYear ? " " + key.slice(0, 4) : ""); };
+  const groups = months.map(({ key, items }) => `<div class="group-label">${monthName(key)}</div><div class="pay-card">${items.map(({ b, next }) => {
+    const turns = turnsOn(b, next);
+    return `<button class="row pay-row" data-edit="birthday:${b.id}"><span class="pay-dt"><b>${parse(next).getDate()}</b><span>${parse(next).toLocaleDateString(undefined, { weekday: "short" })}</span></span>
+      <span class="body"><div class="title"><span class="t">${esc(b.title)}</span></div>${turns ? `<div class="meta">${turns}</div>` : ""}</span></button>`;
+  }).join("")}</div>`).join("");
   return `${header("Birthdays", "")}
     ${list.length ? "" : emptyHTML("No birthdays yet", "Birthdays will show up here. Tap + to add the first one.")}
     ${hero}
-    ${rest.length ? `<div class="group-label">After that</div><div class="pay-card">${rows}</div>` : ""}`;
+    ${groups}`;
 }
 
 const VIEWS = { birthdays: renderBirthdays, calendar: renderCalendar, todo: renderTodo, payments: renderPayments, events: renderEvents };
