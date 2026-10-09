@@ -812,7 +812,7 @@ function hideLock() { const el = document.getElementById("lock"); if (el) el.hid
 async function syncNow() {
   if (!SYNC_ON) return "off";
   let code = ""; try { code = localStorage.getItem(CODE_KEY) || ""; } catch {}
-  if (!code) { showLock(); return "locked"; }
+  if (!code) return "locked";
   if (syncing) { syncAgain = true; return "busy"; }
   syncing = true;
   const sent = rev;
@@ -850,7 +850,11 @@ if (SYNC_ON) {
   addEventListener("online", () => scheduleSync(100));
   setInterval(() => { if (!document.hidden) syncNow(); }, 15000);
   let hasCode = false; try { hasCode = !!localStorage.getItem(CODE_KEY); } catch {}
-  if (hasCode) scheduleSync(50); else showLock();
+  if (hasCode) scheduleSync(50);
+  else {
+    // no code on this phone yet: only show the code screen if the server really asks for one (if the sharing isn't set up, the app just works on its own)
+    fetch("/api/sync", { cache: "no-store" }).then((r) => { if (r.status === 401 || r.status === 429) showLock(); }).catch(() => {});
+  }
 }
 
 render();

@@ -27,7 +27,7 @@ export function createHandler({ store, guard, getCode, now = () => Date.now() })
         return res.status(429).json({ error: "too many wrong codes" });
       }
       if (!ok) {
-        if (guard) await guard.record(t);
+        if (guard && given) await guard.record(t);   // a request with no code at all is just the app checking whether a code is needed
         await sleep(400);   // slows down anyone guessing
         return res.status(401).json({ error: "wrong code" });
       }
