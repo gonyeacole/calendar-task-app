@@ -303,7 +303,7 @@ function renderPayments() {
       <span class="amount">${money(p.amount)}</span></button>`).join("");
   const later = ps.filter((p) => !due.some((d) => d.p === p)).sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
   return `${header("Payments", "")}
-    <div class="total-card"><span>Per month</span><b>${money(total)}</b></div>
+    <div class="pay-hero"><span class="cap">Per month</span><b>${money(total)}</b></div>
     ${ps.length ? `<div class="pay-card pay-week"><div class="pay-strip7">${strip}</div></div>
       <div class="group-label">Next 30 days</div>
       ${dueRows ? `<div class="pay-card">${dueRows}</div>` : `<div class="empty" style="padding:24px 0">Nothing due in the next 30 days.</div>`}
