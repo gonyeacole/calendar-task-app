@@ -127,9 +127,18 @@ svg { display: block; }
 .row .amount { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; line-height: 18px; }
 .group-label { margin: 26px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 .empty { color: var(--muted); text-align: center; padding: 48px 0; font-size: 15px; }
-.pay-hero { margin-top: 22px; background: var(--event); color: #fff; border-radius: 24px; padding: 18px; }
-.pay-hero .cap { display: block; font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; color: rgba(255, 255, 255, .82); }
-.pay-hero b { display: block; margin-top: 8px; font-size: 32px; line-height: 36px; font-weight: 700; letter-spacing: -.8px; font-variant-numeric: tabular-nums; }
+.pay-hero { margin-top: 22px; background: var(--event); color: #fff; border-radius: 999px; min-height: 64px; padding: 0 26px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pay-hero .lbl { font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 14px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, .92); }
+.pay-hero b { font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+.share-bar { display: flex; gap: 2px; height: 15px; margin: 14px 4px 0; }
+.share-bar i { display: block; height: 100%; min-width: 6px; }
+.share-bar i:first-child { border-radius: 999px 0 0 999px; }
+.share-bar i:last-child { border-radius: 0 999px 999px 0; }
+.share-bar i:only-child { border-radius: 999px; }
+.share-key + .pay-week { margin-top: 18px; }
+.share-key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 6px 0; font-size: 13px; line-height: 16px; color: var(--muted); }
+.share-key span { display: inline-flex; align-items: center; gap: 7px; }
+.share-key i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .total-card { margin-top: 22px; background: var(--surface); border-radius: 16px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: baseline; }
 .total-card b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .total-card span { color: var(--muted); font-size: 13px; }

@@ -287,6 +287,11 @@ function renderTodo() {
 function renderPayments() {
   const ps = state.data.payments;
   const total = ps.reduce((s, p) => s + monthlyCost(p), 0);
+  // a bar showing each payment's share of the month, with a key; colors repeat after five payments
+  const SHARE = ["var(--event)", "var(--birthday)", "var(--holiday)", "var(--text)", "#b5a88a"];
+  const byDue = [...ps].sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
+  const shareBar = total > 0 ? `<div class="share-bar" aria-hidden="true">${byDue.map((p, i) => `<i style="flex:${monthlyCost(p)} 1 0;background:${SHARE[i % SHARE.length]}"></i>`).join("")}</div>
+    <div class="share-key">${byDue.map((p, i) => `<span><i style="background:${SHARE[i % SHARE.length]}"></i>${esc(p.title)}</span>`).join("")}</div>` : "";
   const today = todayIso(), t0 = parse(today);
   const dayAt = (i) => { const d = new Date(t0); d.setDate(t0.getDate() + i); return iso(d); };
   // the next seven days, with a dot where money goes out
@@ -303,7 +308,8 @@ function renderPayments() {
       <span class="amount">${money(p.amount)}</span></button>`).join("");
   const later = ps.filter((p) => !due.some((d) => d.p === p)).sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
   return `${header("Payments", "")}
-    <div class="pay-hero"><span class="cap">Per month</span><b>${money(total)}</b></div>
+    <div class="pay-hero"><span class="lbl">Monthly total</span><b>${money(total)}</b></div>
+    ${shareBar}
     ${ps.length ? `<div class="pay-card pay-week"><div class="pay-strip7">${strip}</div></div>
       <div class="group-label">Next 30 days</div>
       ${dueRows ? `<div class="pay-card">${dueRows}</div>` : `<div class="empty" style="padding:24px 0">Nothing due in the next 30 days.</div>`}
