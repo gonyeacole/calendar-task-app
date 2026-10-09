@@ -1,6 +1,6 @@
 // Calendar / To Do / Recurring Payments / Events — vanilla ES module, data in localStorage.
 
-// "Open app" on the code screen: a separate, empty copy on this phone for as long as the app stays open. It never syncs and never
+// "Continue as guest" on the code screen: a separate, empty copy on this phone for as long as the app stays open. It never syncs and never
 // touches the shared calendar (or what was on this phone before), and it goes away when the app is closed and reopened.
 const GUEST_FLAG = "calendar-task-app:guest";
 const GUEST = (() => { try { return sessionStorage.getItem(GUEST_FLAG) === "1"; } catch { return false; } })();
@@ -791,7 +791,7 @@ function showLock(msg = "") {
     el.id = "lock";
     el.innerHTML = `<form novalidate><h1>(k)cal</h1><p>Enter your code to open the calendar.</p>
       <input id="lock-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Code" aria-label="Code">
-      <button type="submit">Open</button><div class="lock-err" role="alert"></div><button type="button" class="lock-guest">Open app</button></form>`;
+      <button type="submit">Open</button><div class="lock-err" role="alert"></div><button type="button" class="lock-guest">Continue as guest</button></form>`;
     document.body.appendChild(el);
     el.querySelector(".lock-guest").addEventListener("click", () => {
       try { sessionStorage.setItem(GUEST_FLAG, "1"); } catch {}
