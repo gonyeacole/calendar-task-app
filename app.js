@@ -261,14 +261,22 @@ function renderCalendar() {
 }
 
 function renderTodo() {
-  const open = state.data.tasks.filter((t) => !t.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
+  const open = state.data.tasks.filter((t) => !t.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9") || (a.time || "").localeCompare(b.time || ""));
   const done = state.data.tasks.filter((t) => t.done);
-  const today = todayIso();
-  const overdue = open.filter((t) => t.due && t.due < today).length;
-  return `${header("To Do", `${open.length} open${overdue ? `, ${overdue} overdue` : ""}`)}
+  const today = todayIso(), weekEnd = weekDates(today)[6];
+  const overdue = open.filter((t) => t.due && t.due < today);
+  // grouped by when they're due; empty groups don't show
+  const groups = [
+    ["Overdue", overdue, "od"],
+    ["Today", open.filter((t) => t.due === today), ""],
+    ["This week", open.filter((t) => t.due > today && t.due <= weekEnd), ""],
+    ["Later", open.filter((t) => t.due > weekEnd), ""],
+    ["No date", open.filter((t) => !t.due), ""],
+    ["Completed", done, ""],
+  ].filter(([, list]) => list.length);
+  return `${header("To Do", `${open.length} open${overdue.length ? `, ${overdue.length} overdue` : ""}`)}
     ${open.length || done.length ? "" : `<div class="empty">No tasks yet. Tap + to add one.</div>`}
-    <div class="list">${open.map((t) => row("task", t, { showDate: true })).join("")}</div>
-    ${done.length ? `<div class="group-label">Completed</div><div class="list">${done.map((t) => row("task", t, { showDate: true })).join("")}</div>` : ""}`;
+    ${groups.map(([label, list, cls]) => `<div class="group-label ${cls}">${label}</div><div class="pay-card">${list.map((t) => row("task", t, { showDate: label !== "Today" })).join("")}</div>`).join("")}`;
 }
 
 function renderPayments() {
