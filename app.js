@@ -1,6 +1,10 @@
 // Calendar / To Do / Recurring Payments / Events — vanilla ES module, data in localStorage.
 
-const KEY = "calendar-task-app:v1";
+// "Open app" on the code screen: a separate, empty copy on this phone for as long as the app stays open. It never syncs and never
+// touches the shared calendar (or what was on this phone before), and it goes away when the app is closed and reopened.
+const GUEST_FLAG = "calendar-task-app:guest";
+const GUEST = (() => { try { return sessionStorage.getItem(GUEST_FLAG) === "1"; } catch { return false; } })();
+const KEY = GUEST ? "calendar-task-app:guest-v1" : "calendar-task-app:v1";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const FREQS = { weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly", yearly: "Yearly" };
@@ -774,7 +778,7 @@ document.addEventListener("keydown", (e) => {
 // When the page is served with the calendar-sync meta tag, everything is kept in sync with a private copy online, protected by a
 // household code. The code is typed once per phone and remembered. Offline, the app keeps working from this phone's copy and
 // catches up on the next sync.
-const SYNC_ON = !!document.querySelector('meta[name="calendar-sync"]');
+const SYNC_ON = !GUEST && !!document.querySelector('meta[name="calendar-sync"]');
 const CODE_KEY = "calendar-task-app:code";
 let syncing = false, syncAgain = false, syncTimer = 0;
 
@@ -787,8 +791,12 @@ function showLock(msg = "") {
     el.id = "lock";
     el.innerHTML = `<form novalidate><h1>(k)cal</h1><p>Enter your code to open the calendar.</p>
       <input id="lock-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Code" aria-label="Code">
-      <button type="submit">Open</button><div class="lock-err" role="alert"></div></form>`;
+      <button type="submit">Open</button><div class="lock-err" role="alert"></div><button type="button" class="lock-guest">Open app</button></form>`;
     document.body.appendChild(el);
+    el.querySelector(".lock-guest").addEventListener("click", () => {
+      try { sessionStorage.setItem(GUEST_FLAG, "1"); } catch {}
+      location.reload();
+    });
     el.querySelector("form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const input = el.querySelector("input"), btn = el.querySelector("button"), code = input.value.trim();

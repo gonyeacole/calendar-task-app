@@ -15,3 +15,5 @@ The bottom tab bar's position was approved by Cole on 2026-10-08. Do not change 
 - Everything is protected by a household code (`APP_CODE` env var on Vercel). Each phone types it once; it is kept in localStorage under `calendar-task-app:code`.
 - Data lives in one private Vercel Blob file (`calendar-data.json`), read and written only by `api/sync.js`. `merge.js` is shared by the app and the server: newest `u` timestamp wins per item, and deletes are kept in `_del`.
 - Anything that adds or edits an item must set `u: Date.now()`; anything that deletes must add `_del[id] = Date.now()` and then call `save()`.
+- The code screen has an "Open app" link: a guest copy that uses its own localStorage key (`calendar-task-app:guest-v1`), never syncs, and lasts only while the app stays open (flag in sessionStorage).
+- This Vercel project deploys to production automatically on every push to the working branch, so only push work that is safe to be live.
