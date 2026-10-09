@@ -785,8 +785,8 @@ function showLock(msg = "") {
   if (!el) {
     el = document.createElement("div");
     el.id = "lock";
-    el.innerHTML = `<form><h1>(k)cal</h1><p>Enter your code to open the calendar.</p>
-      <input id="lock-code" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Code" aria-label="Code">
+    el.innerHTML = `<form novalidate><h1>(k)cal</h1><p>Enter your code to open the calendar.</p>
+      <input id="lock-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Code" aria-label="Code">
       <button type="submit">Open</button><div class="lock-err" role="alert"></div></form>`;
     document.body.appendChild(el);
     el.querySelector("form").addEventListener("submit", async (e) => {
@@ -797,8 +797,10 @@ function showLock(msg = "") {
       btn.disabled = true; btn.textContent = "Checking…";
       const r = await syncNow();
       btn.disabled = false; btn.textContent = "Open";
-      if (r === "offline") el.querySelector(".lock-err").textContent = "Can't reach the server. Check your connection and try again.";
       if (r === "ok") input.value = "";
+      else if (r === "wrong" || r === "offline" || r === "limited") { try { localStorage.removeItem(CODE_KEY); } catch {} }
+      if (r === "offline") el.querySelector(".lock-err").textContent = "Can't reach the server. Check your connection and try again.";
+      if (r === "limited") el.querySelector(".lock-err").textContent = "Too many wrong tries. Wait a few minutes and try again.";
     });
   }
   el.querySelector(".lock-err").textContent = msg;
@@ -821,6 +823,8 @@ async function syncNow() {
       try { localStorage.removeItem(CODE_KEY); } catch {}
       showLock("That code didn't work.");
       result = "wrong";
+    } else if (res.status === 429) {
+      result = "limited";   // too many wrong guesses from somewhere; keep the code and try again later
     } else if (res.ok) {
       const { data } = await res.json();
       const { mergeDocs } = await import("./merge.js");

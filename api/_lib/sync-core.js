@@ -6,14 +6,28 @@ const digest = (s) => createHash("sha256").update(String(s)).digest();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_BYTES = 1_500_000;
 
-export function createHandler({ store, getCode }) {
+// Wrong-code lockout: MAX_FAILS wrong guesses within WINDOW_MS and the endpoint refuses everyone (even the right code) until
+// enough of those guesses are old enough. This is what makes a short code (6 digits) safe to use.
+export const WINDOW_MS = 10 * 60 * 1000;
+export const MAX_FAILS = 10;
+
+export function createHandler({ store, guard, getCode, now = () => Date.now() }) {
   return async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     try {
       const expected = getCode();
       if (!expected) return res.status(500).json({ error: "not configured" });
       const given = req.headers["x-app-code"] || "";
-      if (!timingSafeEqual(digest(given), digest(expected))) {
+      const ok = timingSafeEqual(digest(given), digest(expected));
+      const t = now();
+      const recent = (guard ? (await guard.read()).fails : []).filter((x) => x > t - WINDOW_MS).sort((a, b) => a - b);
+      if (recent.length >= MAX_FAILS) {
+        const until = recent[recent.length - MAX_FAILS] + WINDOW_MS;
+        res.setHeader("Retry-After", String(Math.max(1, Math.ceil((until - t) / 1000))));
+        return res.status(429).json({ error: "too many wrong codes" });
+      }
+      if (!ok) {
+        if (guard) await guard.record(t);
         await sleep(400);   // slows down anyone guessing
         return res.status(401).json({ error: "wrong code" });
       }

@@ -21,3 +21,28 @@ export function blobStore() {
     },
   };
 }
+
+// Remembers recent wrong-code guesses (timestamps only) for the lockout.
+const GUARD_PATH = "calendar-guard.json";
+export function blobGuard() {
+  async function read() {
+    let r;
+    try { r = await get(GUARD_PATH, { access: "private", useCache: false }); } catch (e) { if (e && e.name === "BlobNotFoundError") return { fails: [], etag: null }; throw e; }
+    if (!r || r.statusCode !== 200) return { fails: [], etag: null };
+    const j = JSON.parse(await new Response(r.stream).text());
+    return { fails: Array.isArray(j.fails) ? j.fails.filter((x) => typeof x === "number") : [], etag: r.blob.etag };
+  }
+  return {
+    read,
+    async record(ts) {
+      for (let i = 0; i < 4; i++) {
+        const { fails, etag } = await read();
+        const next = [...fails.filter((x) => x > ts - 3600_000), ts].slice(-200);
+        try {
+          await put(GUARD_PATH, JSON.stringify({ fails: next }), { access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true, ...(etag ? { ifMatch: etag } : {}) });
+          return;
+        } catch (e) { if (!(e && (e.name === "BlobPreconditionFailedError" || /precondition/i.test(String(e.message))))) throw e; }
+      }
+    },
+  };
+}
