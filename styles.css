@@ -168,44 +168,30 @@ svg { display: block; }
    Distance from the screen's bottom edge to the bar's bottom edge: the home-indicator inset minus 10px, so it is
    24px on every Face ID iPhone (inset 34px), and never less than 8px on iPhones with no inset (SE). #tabs reads only this. */
 :root { --tab-bar-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 10px)); }
-/* Tab bar look: near-black and softly glossy, like the app icon. Only colors, highlights and shadows live here; position and
-   size are locked above and in the rules below, so tweak the look with these variables. */
-:root {
-  --tab-bg-top: #17171a;                          /* surface, lighter at the top ... */
-  --tab-bg-bottom: #0a0a0b;                       /* ... fading to near-black */
-  --tab-sheen: rgba(255, 255, 255, .05);          /* faint gloss in the top third */
-  --tab-edge-highlight: rgba(255, 255, 255, .17); /* thin light along the top edge only */
-  --tab-edge-side: rgba(255, 255, 255, .06);      /* barely-there outline on the sides and bottom */
-  --tab-shadow: rgba(0, 0, 0, .6);                /* soft shadow under the bar */
-  --tab-pill-bg: #060607;                         /* selected pill: slightly darker, pressed in */
-  --tab-pill-inset: rgba(0, 0, 0, .85);           /* its inner shadow */
-  --tab-pill-rim: rgba(255, 255, 255, .08);       /* faint highlight on its bottom inner edge */
-  --tab-fg-on: #ffffff;
-  --tab-fg-off: #8b9096;
-}
+/* Liquid Glass tab bar: a floating, frosted capsule with a pill that glides to the selected tab */
 #tabs {
   position: absolute; left: 14px; right: 14px; bottom: var(--tab-bar-bottom); z-index: 6;
   display: flex; padding: 5px; border-radius: 999px; isolation: isolate;
-  background:
-    linear-gradient(180deg, var(--tab-sheen) 0, transparent 34%),
-    linear-gradient(180deg, var(--tab-bg-top), var(--tab-bg-bottom));
+  background: linear-gradient(180deg, var(--glass), color-mix(in srgb, var(--glass) 55%, transparent));
+  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
   box-shadow:
-    inset 0 1px 0 var(--tab-edge-highlight),
-    inset 0 0 0 1px var(--tab-edge-side),
-    0 14px 28px var(--tab-shadow), 0 3px 8px var(--tab-shadow);
+    inset 0 0 0 1px var(--glass-edge),
+    inset 0 1.5px 0 var(--glass-shine),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-shine) 22%, transparent),
+    0 12px 32px rgba(0, 0, 0, .38), 0 2px 6px rgba(0, 0, 0, .25);
 }
 .tab-pill {
   position: absolute; z-index: -1; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 5);
-  border-radius: 999px; background: var(--tab-pill-bg);
-  box-shadow: inset 0 2px 6px var(--tab-pill-inset), inset 0 0 0 1px rgba(0, 0, 0, .35), inset 0 -1px 0 var(--tab-pill-rim);
+  border-radius: 999px; background: var(--glass-pill);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1.5px 0 var(--glass-shine), 0 4px 12px rgba(0, 0, 0, .18);
   transform: translateX(calc(var(--i, 0) * 100%));
   transition: transform .55s cubic-bezier(.34, 1.45, .5, 1);
 }
 #tabs button { padding: 8px 0 7px; border-radius: 999px; }
 #tabs button.on { font-weight: 600; }
-#tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 500; color: var(--tab-fg-off); }
+#tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 500; color: var(--muted); }
 #tabs button { transition: color .25s var(--ease); }
-#tabs button.on { color: var(--tab-fg-on); }
+#tabs button.on { color: var(--text); }
 #tabs svg { transition: transform .35s var(--ease); }
 #tabs button.on svg { transform: scale(1.08); }
 #tabs button:active svg { transform: scale(.88); }
