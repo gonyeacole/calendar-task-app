@@ -303,9 +303,8 @@ function renderPayments() {
       <span class="amount">${money(p.amount)}</span></button>`).join("");
   const later = ps.filter((p) => !due.some((d) => d.p === p)).sort((a, b) => nextDue(a).localeCompare(nextDue(b)));
   return `${header("Payments", "")}
-    <div class="pay-hero"><span class="lbl">Monthly total</span><b>${money(total)}</b></div>
-    ${ps.length ? `<div class="pay-card pay-week"><div class="pay-strip7">${strip}</div></div>
-      <div class="group-label">Next 30 days</div>
+    <div class="pay-combo"><div class="pay-combo-row"><span class="lbl">Monthly total</span><b>${money(total)}</b></div><div class="pay-strip7">${strip}</div></div>
+    ${ps.length ? `<div class="group-label">Next 30 days</div>
       ${dueRows ? `<div class="pay-card">${dueRows}</div>` : `<div class="empty" style="padding:24px 0">Nothing due in the next 30 days.</div>`}
       ${later.length ? `<div class="group-label">Later</div><div class="pay-card">${later.map((p) => row("payment", p, { showDate: true })).join("")}</div>` : ""}`
       : emptyHTML("No payments yet", "Recurring payments will show up here. Tap + to add the first one.")}`;

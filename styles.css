@@ -127,9 +127,17 @@ svg { display: block; }
 .row .amount { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; line-height: 18px; }
 .group-label { margin: 26px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 .empty { color: var(--muted); text-align: center; padding: 48px 0; font-size: 15px; }
-.pay-hero { margin-top: 22px; background: var(--event); color: #fff; border-radius: 20px; min-height: 64px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.pay-hero .lbl { font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 14px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, .92); }
-.pay-hero b { font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+.pay-combo { margin-top: 22px; background: var(--event); color: #fff; border-radius: 20px; padding: 14px 12px 10px; }
+.pay-combo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 14px; }
+.pay-combo .lbl { font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 14px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, .92); }
+.pay-combo-row b { font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+.pay-combo .pay-strip7 .cap { color: rgba(255, 255, 255, .78); }
+.pay-combo .pay-strip7 i { background: #fff; }
+.pay-combo .pay-strip7 i.none { background: transparent; }
+.pay-combo .pay-strip7 .on { background: #fff; color: var(--event); }
+.pay-combo .pay-strip7 .on .cap { color: var(--event); opacity: .85; }
+.pay-combo .pay-strip7 .on i { background: var(--event); }
+.pay-combo .pay-strip7 .on i.none { background: transparent; }
 .total-card { margin-top: 22px; background: var(--surface); border-radius: 16px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: baseline; }
 .total-card b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .total-card span { color: var(--muted); font-size: 13px; }
@@ -149,7 +157,6 @@ svg { display: block; }
 .ev-hero p { margin: 0; font-size: 14px; line-height: 18px; color: rgba(255, 255, 255, .9); }
 .ev-hero .pill { display: inline-block; margin-top: 14px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .22); font-size: 12px; font-weight: 600; }
 .row .when { flex: none; align-self: center; font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
-.pay-week { padding: 10px 8px; }
 .pay-strip7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
 .pay-strip7 > div { padding: 7px 0 6px; border-radius: 14px; }
 .pay-strip7 .cap { display: block; font-size: 9px; line-height: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
