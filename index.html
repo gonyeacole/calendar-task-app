@@ -7,6 +7,10 @@
   <meta name="calendar-sync" content="on">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script>
+    // Shared calendar: if this phone has no code yet, hide the app from the very first frame so the code screen is all you see (app.js adds the screen itself).
+    try { if (document.querySelector('meta[name="calendar-sync"]') && !localStorage.getItem("calendar-task-app:code") && sessionStorage.getItem("calendar-task-app:guest") !== "1") document.documentElement.classList.add("locked"); } catch (e) {}
+  </script>
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="(k)cal">

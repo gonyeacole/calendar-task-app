@@ -860,8 +860,9 @@ if (SYNC_ON) {
   let hasCode = false; try { hasCode = !!localStorage.getItem(CODE_KEY); } catch {}
   if (hasCode) scheduleSync(50);
   else {
-    // no code on this phone yet: only show the code screen if the server really asks for one (if the sharing isn't set up, the app just works on its own)
-    fetch("/api/sync", { cache: "no-store" }).then((r) => { if (r.status === 401 || r.status === 429) showLock(); }).catch(() => {});
+    // no code on this phone yet: the code screen is up straight away; it only goes away again if the server clearly isn't set up for sharing (then the app just works on its own)
+    showLock();
+    fetch("/api/sync", { cache: "no-store" }).then((r) => { if (r.status === 404 || r.status === 500) hideLock(); }).catch(() => {});
   }
 }
 

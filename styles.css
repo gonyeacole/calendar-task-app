@@ -365,4 +365,5 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after { tr
 #lock button:disabled { opacity: .6; }
 #lock .lock-err { min-height: 18px; font-size: 13px; color: var(--event); }
 html.locked #app { visibility: hidden; }
-#lock .lock-guest { background: none; color: var(--muted); font-weight: 500; font-size: 15px; padding: 8px; }
+#lock .lock-err:empty { display: none; }
+#lock .lock-guest { margin-top: -8px; background: none; color: var(--muted); font-weight: 500; font-size: 15px; padding: 8px; }
