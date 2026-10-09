@@ -205,7 +205,7 @@ function row(kind, item, { showDate = false, ds = "", compact = false } = {}) {
 
 // ---------- views ----------
 const weekDates = (ds) => {
-  const d = parse(ds); d.setDate(d.getDate() - d.getDay());
+  const d = parse(ds); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // weeks run Monday to Sunday
   return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return iso(x); });
 };
 const sortedRows = (it, ds) => [
