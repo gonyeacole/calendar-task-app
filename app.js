@@ -88,13 +88,13 @@ const monthlyCost = (p) => p.amount * ({ weekly: 52 / 12, biweekly: 26 / 12, mon
 // ---------- light / dark ----------
 const THEME_KEY = "calendar-task-app:theme";
 const root = document.documentElement;
-const prefersDark = matchMedia("(prefers-color-scheme: dark)");
-const currentTheme = () => root.dataset.theme || (prefersDark.matches ? "dark" : "light");
+// opens in light mode unless this phone has switched to dark (the choice is remembered)
+const currentTheme = () => root.dataset.theme || "light";
 function applyTheme(t) {
   root.dataset.theme = t;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#000000" : "#f4ead8");
 }
-try { const saved = localStorage.getItem(THEME_KEY); if (saved) applyTheme(saved); } catch {}
+try { applyTheme(localStorage.getItem(THEME_KEY) || "light"); } catch { applyTheme("light"); }
 
 function toggleTheme(btn) {
   const next = currentTheme() === "dark" ? "light" : "dark";
